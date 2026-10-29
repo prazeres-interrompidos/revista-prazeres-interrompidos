@@ -1,0 +1,5 @@
+/* Revalida o conteúdo publicado apenas enquanto a revista está visível. */
+'use strict';
+let lastReaderCheck=0,readerCheckBusy=false;
+async function checkPublishedEdition(){if(new URLSearchParams(location.search).has('rascunho')||document.visibilityState!=='visible'||readerCheckBusy||Date.now()-lastReaderCheck<120000||panel.open||$('#reading').open)return;lastReaderCheck=Date.now();readerCheckBusy=true;try{const response=await fetch('editions.js',{cache:'no-cache',credentials:'omit',signal:AbortSignal.timeout(15000)});if(!response.ok)return;const next=RevistaPublishing.parse(await response.text());if(RevistaPublishing.signature(next)===RevistaPublishing.signature(editions))return;const selected=edition.id;editions=next;loadEdition(selected);$('#hint').textContent='O conteúdo desta revista foi atualizado automaticamente.';}catch{/* A leitura mantém-se disponível se a ligação falhar. */}finally{readerCheckBusy=false}}
+setInterval(checkPublishedEdition,120000);document.addEventListener('visibilitychange',checkPublishedEdition);

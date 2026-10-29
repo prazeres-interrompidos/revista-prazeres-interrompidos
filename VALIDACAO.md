@@ -22,3 +22,12 @@ Limites:
 - Testes em Chrome de ambiente remoto. Falta validação em equipamentos físicos Android/iPhone, Safari e Firefox.
 - Na edição definitiva, rever títulos longos, paginação, cada capa original e as ligações áudio reais.
 - As edições e imagens estão num único ficheiro, adequado ao protótipo e a um arquivo inicial; um arquivo muito extenso beneficiará da divisão de dados por edição.
+
+## Atualização do editor — 29 de outubro de 2026
+
+- Gravação de rascunho em IndexedDB e recuperação após recarregar: verificada no navegador.
+- Publicação sem autorização: bloqueada pelo editor.
+- Sete testes automatizados em tests/publishing-core.test.cjs: preservação de Unicode e parágrafos, ficheiro tratado como JSON sem execução, escrita com SHA, bloqueio de conflito, ausência de commits sem alterações, erro de autorização e bloqueio sem credencial.
+- Executar os testes com: node --test tests/publishing-core.test.cjs .
+- A publicação direta usa a API oficial do GitHub e exige autorização pessoal de escrita. Não foi executado um envio real a partir do editor, porque ainda não foi configurada essa autorização pelo proprietário.
+- A atualização dos leitores fica sujeita ao prazo de publicação e cache do GitHub Pages.

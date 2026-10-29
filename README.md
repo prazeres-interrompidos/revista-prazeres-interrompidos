@@ -1,3 +1,24 @@
+# Atualização direta do conteúdo — outubro de 2026
+
+O editor permite agora guardar rascunhos automaticamente e atualizar o conteúdo online sem exportar nem carregar ficheiros manualmente.
+
+## Começar
+
+1. Abra https://prazeres-interrompidos.github.io/revista-prazeres-interrompidos/editor.html .
+2. Edite os textos e carregue as capas. O rascunho é guardado automaticamente no armazenamento deste navegador (IndexedDB), incluindo as imagens. É recuperado quando regressar ao editor. Não é sincronizado entre dispositivos; mantenha uma cópia JSON.
+3. Abra «Publicação online» e ligue uma autorização GitHub pessoal, de acesso restrito (fine-grained), apenas para o repositório revista-prazeres-interrompidos. A permissão necessária é Contents: Read and write. O próprio editor inclui instruções e a ligação oficial para a criar.
+4. Cole a autorização apenas no campo protegido do editor e escolha «Ligar edição online». A autorização permanece apenas na memória da janela, nunca é incluída nos textos, nas cópias JSON ou no armazenamento do rascunho. Ao fechar/recarregar a página terá de voltar a ligá-la. Não envie a autorização para a conversa. Pode revogá-la nas definições do GitHub.
+5. Escolha «Guardar e atualizar revista». O conteúdo é enviado diretamente para o GitHub e o GitHub Pages atualiza a publicação. Pode demorar alguns minutos.
+6. Se preferir, ative «Atualizar online automaticamente após editar». Publica após 90 segundos sem alterações e respeita um intervalo mínimo de 6 minutos entre gravações automáticas. Precisa de manter o editor aberto e ligado; não executa em segundo plano com a página fechada. Navegadores podem suspender temporizadores de separadores inativos.
+
+O botão de publicação manual continua disponível. Uma validação incompleta ou erro suspende a publicação automática. Complete os campos ou resolva o erro e volte a ativá-la. Se a revista tiver sido alterada noutra janela, o editor recusa substituir essa versão: guarde a cópia JSON do rascunho, carregue a versão online e volte a introduzir as alterações pretendidas.
+
+Os leitores com a revista aberta verificam novas versões a cada dois minutos enquanto o separador estiver visível. A atualização respeita as janelas de leitura ampliada abertas; não as fecha. O tempo total também depende da publicação e cache do GitHub Pages. Não existe uma garantia de atualização instantânea.
+
+A autorização não foi criada nem incorporada no código. É necessária a configuração pelo proprietário para ativar a escrita online. Os visitantes sem autorização podem criar rascunhos no seu próprio navegador, mas não podem alterar a revista pública. Toda a solução continua a usar GitHub Pages e a API do GitHub, sem serviço de gravação pago.
+
+---
+
 # Revista literária Prazeres Interrompidos
 
 Protótipo funcional, edição experimental n.º 00, Outubro de 2026. Todos os artigos são demonstrativos. Não contém capas de livros, episódios ou vozes reais. A identidade editorial inicial usa tons de vinho, papel e dourado e pode ser afinada com o logótipo e as cores oficiais.
@@ -22,10 +43,10 @@ Ecrã completo usa a função do navegador quando permitida. Quando indisponíve
 6. Se existir, introduza a ligação pública do episódio. Ligações diretas MP3/OGG/WAV/M4A disponibilizam leitor áudio; páginas de plataformas abrem o episódio numa nova aba. Algumas plataformas podem impedir a reprodução direta. Não há reprodução automática. Para garantir autonomia de alojamento, podem usar-se MP3 na pasta assets do repositório e uma ligação HTTPS pública do GitHub Pages. Não coloque áudios privados ou dependentes de autenticação.
 7. Pode acrescentar, remover e ordenar os artigos. A quantidade de páginas aumenta automaticamente com os textos. As palavras e os parágrafos são mantidos, mesmo quando atravessam páginas. O índice adapta-se ao número de artigos. Faça a revisão visual de cada edição, sobretudo com títulos longos e imagens próprias.
 8. Escolha «Pré-visualizar revista». O rascunho abre noutra aba e não altera a revista publicada. Este passo precisa de espaço temporário no navegador; se falhar com muitas imagens, use imagens mais leves ou exporte para testar na pasta local.
-9. «Guardar cópia JSON» cria uma cópia editável. Guarde-a sempre antes de fechar: o formulário não é guardado automaticamente. Pode recuperar essa cópia em «Importar cópia JSON».
-10. «Exportar edições para publicar» gera editions.js com TODAS as edições carregadas. Substitua o ficheiro editions.js existente por esse ficheiro. Não apague edições antigas para conservar o arquivo. O editor não faz publicações automáticas nem necessita de credenciais.
+9. «Guardar cópia JSON» cria uma cópia editável. Guarde também esta cópia de segurança: o rascunho automático permanece apenas no navegador utilizado. Pode recuperar essa cópia em «Importar cópia JSON».
+10. «Exportar edições para publicar» gera editions.js com TODAS as edições carregadas. Substitua o ficheiro editions.js existente por esse ficheiro. Não apague edições antigas para conservar o arquivo. A exportação continua disponível como alternativa à publicação direta.
 
-O arquivo mostra apenas edições efetivamente presentes em editions.js. Neste protótipo existe um único número; não foram inventadas edições anteriores. O editor é uma ferramenta local, não um backoffice com autenticação. Quem visita pode criar um rascunho próprio, mas só quem tem acesso ao repositório pode mudar a publicação.
+O arquivo mostra apenas edições efetivamente presentes em editions.js. Neste protótipo existe um único número; não foram inventadas edições anteriores. O editor guarda rascunhos localmente e permite a publicação direta mediante uma autorização GitHub de escrita.
 
 ## Publicar no GitHub Pages
 
