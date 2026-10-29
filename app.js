@@ -53,3 +53,42 @@ $('#fullscreen').onclick=async()=>{if(document.fullscreenElement){await document
 document.addEventListener('fullscreenchange',()=>{if(!document.fullscreenElement)immersive(false)});document.addEventListener('keydown',e=>{if(e.key==='Escape')immersive(false)});
 document.addEventListener('keydown',e=>{if(e.target.matches('input,textarea')||panel.open||$('#reading').open)return;if(e.key==='ArrowRight')flip.flipNext();if(e.key==='ArrowLeft')flip.flipPrev()});
 if(new URLSearchParams(location.search).get('preview')==='embedded'&&window.parent!==window){window.addEventListener('message',e=>{if(e.origin!==location.origin||e.source!==window.parent||e.data?.type!=='pi-preview-edition')return;const draft=e.data.edition;if(!draft||!Array.isArray(draft.articles))return;editions=[draft];loadEdition(draft.id)});window.parent.postMessage({type:'pi-preview-ready'},location.origin);}else if(!editions?.length)document.body.textContent='Não existem edições disponíveis.';else loadEdition(new URLSearchParams(location.hash.slice(1)).get('edicao'));
+
+
+// Partilha da página atual e versão PDF com a mesma paginação do leitor.
+const readerActions=document.createElement('div');
+readerActions.className='controls';
+readerActions.innerHTML='<button id="sharePage">↗ Partilhar esta página</button><span class="divider"></span><button id="downloadPDF">↓ Guardar revista em PDF</button><span id="exportState" role="status" style="font-size:12px"></span>';
+document.querySelector('.controls').insertAdjacentElement('afterend',readerActions);
+function pageShareData(){
+ const url=new URL('index.html',location.href);url.search='';url.hash=new URLSearchParams({edicao:edition.id,pagina:String(Number($('#pageNumber').value)||1)}).toString();
+ return {url:url.href,title:'Prazeres Interrompidos · N.º '+edition.number,text:edition.month+' · Página '+$('#pageNumber').value};
+}
+$('#sharePage').onclick=()=>{
+ if(new URLSearchParams(location.search).has('preview')||new URLSearchParams(location.search).has('rascunho')){openPanel('<h2>Partilhar esta página</h2><p>Publique a edição antes de partilhar. Esta pré-visualização contém alterações que os leitores ainda não podem ver.</p>');return}
+ const data=pageShareData(),u=encodeURIComponent(data.url),message=encodeURIComponent(data.title+' · '+data.text+' '+data.url);
+ const networks=[['WhatsApp','https://wa.me/?text='+message],['Facebook','https://www.facebook.com/sharer/sharer.php?u='+u],['Telegram','https://t.me/share/url?url='+u+'&text='+encodeURIComponent(data.title+' · '+data.text)],['X','https://twitter.com/intent/tweet?url='+u+'&text='+encodeURIComponent(data.title+' · '+data.text)],['LinkedIn','https://www.linkedin.com/sharing/share-offsite/?url='+u],['Email','mailto:?subject='+encodeURIComponent(data.title)+'&body='+message]];
+ openPanel('<h2>Partilhar esta página</h2><p>'+esc(data.text)+'</p><div style="display:flex;flex-wrap:wrap;gap:12px">'+networks.map(([label,url])=>'<a style="padding:12px;border:1px solid #c8bdad" href="'+esc(url)+'" target="_blank" rel="noopener noreferrer">'+label+'</a>').join('')+'</div><p><button id="nativeShare" style="padding:12px" '+(!navigator.share?'hidden':'')+'>Mais aplicações…</button><button id="copyPageLink" style="padding:12px">Copiar ligação</button></p><input id="pageShareLink" aria-label="Ligação desta página" readonly style="width:100%;padding:10px" value="'+esc(data.url)+'"><p id="shareState" role="status"></p><p class="note">A ligação abre esta edição na página selecionada. Para Instagram e outras aplicações, use «Mais aplicações» quando disponível ou copie a ligação.</p>');
+ $('#nativeShare').onclick=async()=>{try{await navigator.share(data)}catch(error){if(error.name!=='AbortError')$('#shareState').textContent='Copie a ligação para partilhar nesta aplicação.'}};
+ $('#copyPageLink').onclick=async()=>{try{await navigator.clipboard.writeText(data.url);$('#shareState').textContent='Ligação copiada.'}catch{$('#pageShareLink').select();$('#shareState').textContent='Selecione e copie a ligação apresentada.'}};
+};
+let pdfFrame;
+$('#downloadPDF').onclick=async()=>{
+ const button=$('#downloadPDF'),notice=$('#exportState');button.disabled=true;notice.textContent='A preparar as páginas…';
+ try{
+ if(pdfFrame)pdfFrame.remove();pdfFrame=document.createElement('iframe');pdfFrame.title='Edição preparada para guardar em PDF';pdfFrame.style.cssText='position:fixed;left:-10000px;top:0;width:460px;height:640px;border:0';document.body.append(pdfFrame);
+ const doc=pdfFrame.contentDocument;
+ const styles=Array.from(document.querySelectorAll('link[rel="stylesheet"]')).map(l=>'<link rel="stylesheet" href="'+esc(l.href)+'">').join('')+'<style>'+textStyles.textContent+'</style>';
+ const content=pages.map((p,i)=>'<section class="page '+esc(p.cls)+'"><div class="page-inner">'+p.content+((p.cls==='uploaded-cover'||p.cls==='uploaded-back-cover'||p.cls==='poster-page')?'':'<div class="folio"><span>'+(edition.demo?'EDIÇÃO EXPERIMENTAL':'PRAZERES INTERROMPIDOS')+'</span><span>'+String(i+1).padStart(2,'0')+'</span></div>')+'</div></section>').join('');
+ doc.open();doc.write('<!doctype html><html lang="pt-PT"><head><meta charset="utf-8"><title>Prazeres Interrompidos - '+esc(edition.month)+' - N.º '+esc(edition.number)+'</title>'+styles+'<style>@page{size:460px 640px;margin:0}html,body{margin:0;padding:0;width:460px;background:white}*{-webkit-print-color-adjust:exact;print-color-adjust:exact}.page{position:relative!important;display:block!important;width:460px!important;height:640px!important;margin:0!important;break-after:page;page-break-after:always;break-inside:avoid;border:0;box-shadow:none!important;overflow:hidden}.page:last-child{break-after:auto;page-break-after:auto}.page-inner{position:relative!important;width:460px!important;height:640px!important;transform:none!important}.index-item{color:inherit}.listen{text-decoration:none}a{color:inherit;text-decoration:none}</style></head><body>'+content+'</body></html>');doc.close();
+ // Keep audio and index destinations clickable in the PDF.
+ doc.querySelectorAll('[data-audio]').forEach(el=>{const a=document.createElement('a');a.className=el.className;a.textContent=el.textContent;a.href=safeURL(edition.articles[Number(el.dataset.audio)].audio);el.replaceWith(a)});
+ doc.querySelectorAll('[data-page]').forEach(el=>{const a=doc.createElement('a'),url=new URL('index.html',location.href);url.search='';url.hash=new URLSearchParams({edicao:edition.id,pagina:String(Number(el.dataset.page)+1)}).toString();a.className=el.className;a.innerHTML=el.innerHTML;a.href=url.href;el.replaceWith(a)});
+ await Promise.all(Array.from(doc.images).map(img=>img.complete?(img.naturalWidth?Promise.resolve():Promise.reject(Error('Uma imagem não carregou.'))):new Promise((resolve,reject)=>{img.onload=resolve;img.onerror=()=>reject(Error('Uma imagem não carregou. Verifique as imagens e tente novamente.'))})));
+ await doc.fonts.ready;
+ await new Promise(resolve=>{if(doc.readyState==='complete')resolve();else pdfFrame.onload=resolve});
+ notice.textContent='Escolha «Guardar como PDF» na janela de impressão, com escala 100%, sem cabeçalhos nem rodapés.';
+ pdfFrame.contentWindow.focus();pdfFrame.contentWindow.print();
+ }catch(error){notice.textContent='Não foi possível preparar o PDF. '+error.message}
+ finally{button.disabled=false}
+};
