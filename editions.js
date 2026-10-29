@@ -4,7 +4,7 @@ window.EDITIONS = [
     "number": "00",
     "month": "Outubro 2026",
     "demo": true,
-    "headline": "O prazer de ler.\nO tempo de ficar.",
+    "headline": "O prazer de ler.O tempo de ficar.",
     "editorial": "A revista literária do Prazeres Interrompidos dá aos textos dos episódios uma nova forma de leitura.\n\nEste número serve para experimentar a paginação, a tipografia e o gesto de folhear. Os artigos são demonstrativos.\n\nEscolha uma leitura no índice. Pode ampliar o texto e regressar à página onde ficou.",
     "cover": "",
     "articles": [
