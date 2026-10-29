@@ -16,9 +16,11 @@ const available=640-parseFloat(getComputedStyle(inner).paddingBottom)-folio.offs
 const tokens=String(text??'').match(/\S+\s*|\s+/g)||[''],chunks=[];let chunk='';
 for(const token of tokens){block.innerHTML=prose(chunk+token);if(block.offsetHeight>available&&chunk){chunks.push(chunk);chunk=token}else chunk+=token}
 if(chunk||!chunks.length)chunks.push(chunk);
-// Make room for the audio link or closing note on the final page only.
-const creditMeasure=document.createElement('div');creditMeasure.innerHTML=articleCredits(article);inner.append(creditMeasure);const closingHeight=creditMeasure.offsetHeight+72;creditMeasure.remove();const last=chunks.pop();let final='',overflow='';for(const token of last.match(/\S+\s*|\s+/g)||['']){block.innerHTML=prose(final+token);if(overflow||block.offsetHeight>available-closingHeight)overflow+=token;else final+=token}
-if(overflow){chunks.push(final);chunks.push(overflow)}else chunks.push(last);
+// Keep every text page filled. Move the closing credits, never the text,
+// when the credits cannot fit below the final paragraph.
+const creditMeasure=document.createElement('div');creditMeasure.innerHTML=articleCredits(article);inner.append(creditMeasure);const closingHeight=creditMeasure.offsetHeight+72;creditMeasure.remove();
+block.innerHTML=prose(chunks[chunks.length-1]);
+if(block.offsetHeight+closingHeight>available)chunks.push('');
 host.remove();return chunks}
 
 function page(content,cls='',article=null,text=null){pages.push({content,cls,article,text});}
