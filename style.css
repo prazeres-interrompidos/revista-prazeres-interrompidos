@@ -12,3 +12,25 @@ body.immersive #bookWrap{width:920px;max-width:min(calc(100vw - 170px),calc((100
 body.immersive #bookWrap #book{transform:none!important}
 body.immersive .controls{flex:none;min-height:40px;margin:8px auto 0}
 @media(max-width:700px){body.immersive>main{padding:8px 12px}body.immersive #bookWrap{width:460px;max-width:min(100%,calc((100dvh - 180px)*.71875))}body.immersive .controls{gap:6px}}
+
+
+/* Leitor tátil: uma página estável, sem capturar o movimento vertical. */
+body.touch-reader #reader{min-height:0;gap:0}
+body.touch-reader .side{display:none}
+body.touch-reader #bookWrap{width:460px;max-width:100%}
+body.touch-reader #bookWrap #book{transform:none!important}
+.touch-book{width:100%;aspect-ratio:460/640;position:relative;touch-action:pan-y pinch-zoom}
+.touch-book>.page{position:absolute;inset:0;width:100%;height:100%}
+.touch-book>.page[hidden]{display:none!important}
+.touch-book .page-inner{transform-origin:top left}
+.touch-book img{-webkit-user-drag:none;user-select:none}
+body.touch-reader .controls{gap:6px;flex-wrap:wrap}
+body.touch-reader .controls button,body.touch-reader nav button{min-height:44px;min-width:44px}
+body.touch-reader .controls .prev,body.touch-reader .controls .next{font-size:24px;padding:6px 16px;background:var(--paper);border-radius:6px}
+body.touch-reader .controls input{font-size:16px;width:52px;min-height:44px}
+body.touch-reader button:disabled{opacity:.35;cursor:default}
+body.touch-reader.immersive>main{padding:8px 12px;padding-bottom:max(8px,env(safe-area-inset-bottom))}
+body.touch-reader.immersive #bookWrap{width:460px;max-width:min(100%,calc((100dvh - 180px)*.71875))}
+body.touch-reader .reading-tools{flex-wrap:wrap;gap:4px;padding:8px}
+body.touch-reader .reading-tools button{min-height:44px;min-width:44px;padding:8px}
+@media(max-width:700px){dialog{padding:28px 20px}header{padding:12px;gap:8px}nav{gap:4px}.brand span{font-size:15px}#readingContent{padding:20px}.controls{margin-top:12px}}
