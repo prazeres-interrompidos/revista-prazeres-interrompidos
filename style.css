@@ -3,3 +3,12 @@
 @media(prefers-reduced-motion:reduce){*{scroll-behavior:auto}}
 .cover h2{white-space:pre-line}.page-inner>.text-block{flex-shrink:1;min-height:0}.page-inner>.folio{flex-shrink:0}#bookWrap.first-cover #book{transform:translateX(-25%)}#bookWrap.last-cover #book{transform:translateX(25%)}@media(max-width:700px){#bookWrap.first-cover #book,#bookWrap.last-cover #book{transform:none}}
 body.immersive>header,body.immersive>footer,body.immersive .edition-line,body.immersive .hint{display:none}body.immersive>main{max-width:none;min-height:100dvh;display:flex;flex-direction:column;justify-content:center;padding:15px}body.immersive #bookWrap{max-width:min(920px,calc((100dvh - 105px)*1.4375))}body.immersive .controls{margin-top:15px}@media(max-width:700px){body.immersive #bookWrap{max-width:min(100%,calc((100dvh - 140px)*.71875))}}
+
+/* Mantém o leitor fixo enquanto se folheia em ecrã completo. */
+body.immersive{overflow:hidden}
+body.immersive>main{height:100dvh;min-height:0;display:flex;justify-content:flex-start;overflow:hidden;padding:12px 20px}
+body.immersive #reader{flex:1;min-height:0;width:100%;overflow:hidden}
+body.immersive #bookWrap{width:920px;max-width:min(calc(100vw - 170px),calc((100dvh - 160px)*1.4375))}
+body.immersive #bookWrap #book{transform:none!important}
+body.immersive .controls{flex:none;min-height:40px;margin:8px auto 0}
+@media(max-width:700px){body.immersive>main{padding:8px 12px}body.immersive #bookWrap{width:460px;max-width:min(100%,calc((100dvh - 180px)*.71875))}body.immersive .controls{gap:6px}}
