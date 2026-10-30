@@ -33,8 +33,8 @@ const chunks=a.hasText===false?[]:splitText(a.text,a);chunks.forEach((t,k)=>page
 
 const publishedNews=(edition.news||[]).filter(n=>n.image||(n.hasText!==false&&n.text?.trim()));
 if(publishedNews.length){newsStart=pages.length;page('<div class="eyebrow">PRAZERES INTERROMPIDOS</div><div style="flex:1;display:flex;flex-direction:column;justify-content:center"><div style="width:64px;border-top:1px solid #d0af83;margin-bottom:30px"></div><h2 style="font:48px/1.08 Georgia;letter-spacing:-1px;margin:0 0 28px">Novidades<br>do Projeto</h2><p style="font:19px/1.6 Georgia;max-width:290px">O que há de novo no<br>Prazeres Interrompidos.</p></div>','cover news-transition');publishedNews.forEach(n=>{
-const link=n.url&&safeURL(n.url)?'<a class="listen" href="'+esc(safeURL(n.url))+'" target="_blank" rel="noopener">Mais informações ↗</a>':'';
-const newsFirstPage=pages.length;newsIndex.push({title:n.title,subtitle:'Novidades do Projeto',start:newsFirstPage});if(n.image)page((link?'<a href="'+esc(safeURL(n.url))+'" target="_blank" rel="noopener" style="position:absolute;inset:0">':'')+'<img src="'+esc(safeImage(n.image))+'" alt="'+esc(n.title)+'" style="position:absolute;inset:0;width:100%;height:100%;object-fit:fill">'+(link?'</a>':''),'poster-page');
+const link=n.url&&safeURL(n.url)?'<a data-pdf-news="true" class="listen" href="'+esc(safeURL(n.url))+'" target="_blank" rel="noopener">Mais informações ↗</a>':'';
+const newsFirstPage=pages.length;newsIndex.push({title:n.title,subtitle:'Novidades do Projeto',start:newsFirstPage});if(n.image)page((link?'<a data-pdf-news="true" href="'+esc(safeURL(n.url))+'" target="_blank" rel="noopener" style="position:absolute;inset:0">':'')+'<img src="'+esc(safeImage(n.image))+'" alt="'+esc(n.title)+'" style="position:absolute;inset:0;width:100%;height:100%;object-fit:fill">'+(link?'</a>':''),'poster-page');
 const first=pages.length;
 if(n.hasText!==false&&n.text?.trim()){const chunks=splitText(n.text,{title:n.title,section:'NOVIDADES DO PROJETO',isNews:true});chunks.forEach((t,k)=>page('<div class="eyebrow">NOVIDADES DO PROJETO'+(k?' · CONTINUAÇÃO':'')+'</div><h2>'+esc(n.title)+'</h2><div class="text-block article-prose">'+prose(t)+'</div>'+(k===chunks.length-1?link:''),'text-page'))}
 for(let j=newsFirstPage;j<pages.length;j++)pages[j].news=n;
@@ -95,7 +95,7 @@ $('#downloadPDF').onclick=async()=>{
  // Keep audio and index destinations clickable in the PDF.
  doc.querySelectorAll('[data-audio]').forEach(el=>{const a=document.createElement('a');a.className=el.className;a.textContent=el.textContent;a.href=safeURL(edition.articles[Number(el.dataset.audio)].audio);a.dataset.pdfAudio='true';el.replaceWith(a)});
  doc.querySelectorAll('[data-page]').forEach(el=>{const a=doc.createElement('a');a.className=el.className;a.innerHTML=el.innerHTML;a.setAttribute('href','#pdf-page-'+(Number(el.dataset.page)+1));el.replaceWith(a)});
- doc.querySelectorAll('a[href]').forEach(a=>{if(a.dataset.pdfAudio||a.getAttribute('href').startsWith('#pdf-page-'))return;const span=doc.createElement('span');span.className=a.className;span.innerHTML=a.innerHTML;a.replaceWith(span)});
+ doc.querySelectorAll('a[href]').forEach(a=>{if(a.dataset.pdfAudio||a.dataset.pdfNews||a.getAttribute('href').startsWith('#pdf-page-'))return;const span=doc.createElement('span');span.className=a.className;span.innerHTML=a.innerHTML;a.replaceWith(span)});
  await Promise.all(Array.from(doc.images).map(img=>img.complete?(img.naturalWidth?Promise.resolve():Promise.reject(Error('Uma imagem não carregou.'))):new Promise((resolve,reject)=>{img.onload=resolve;img.onerror=()=>reject(Error('Uma imagem não carregou. Verifique as imagens e tente novamente.'))})));
  await doc.fonts.ready;
  await new Promise(resolve=>{if(doc.readyState==='complete')resolve();else pdfFrame.onload=resolve});
