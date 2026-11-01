@@ -1,0 +1,38 @@
+{
+  "method": "Built-in image generation for typography removal; original illustration crop for Arte de Amar.",
+  "base_prompt": "Remove all typography, letters, words, numbers, publisher logos and text-containing badges. Preserve original artwork, colors, objects and composition. No new elements or text.",
+  "edits": [
+    {
+      "title": "Quartas às 10",
+      "instructions": "Keep the coffee cup and saucer, steam, stack of books and wooden tabletop exactly as in the reference. Remove the title, all author names, preface line, top lettering and bottom publisher emblem."
+    },
+    {
+      "title": "Manifesto Pela Leitura",
+      "instructions": "Keep the woman reading, birds, book, muted collage and background paper texture. Remove the author and title from the woman's chest and remove any legible words or lettering from newspaper collage and book surfaces while preserving their visual textures."
+    },
+    {
+      "title": "As Avenidas Periféricas",
+      "instructions": "Keep the black-and-white rainy riverside photograph, people with umbrellas, pavement, railing and river. Remove the entire white title/author panel, prize badge, and header words; seamlessly reconstruct the river/photo behind those panels."
+    },
+    {
+      "title": "Um Homem Que Dorme",
+      "instructions": "Keep the abstract face portrait and beige, mauve and brown paper-like abstract artwork. Remove every printed word, title, author, translator, publisher and the dark navy letter-like shapes along the lower edge, filling their area with matching surrounding paper/abstract artwork."
+    },
+    {
+      "title": "Herança",
+      "instructions": "Keep the two stylised purple women within the shared house, the red dividing line, beige paper field and rounded border composition. Remove all author/title, quote, publisher seal and small print."
+    },
+    {
+      "title": "Jardins Perfumados Para Os Cegos",
+      "instructions": "Keep the vibrant orange, coral, red, yellow and green layered floral/leaf illustration with exactly its original shapes, arrangement and textured style. Remove all title, author, translator and publisher lettering and reconstruct uninterrupted floral/background colors behind it."
+    },
+    {
+      "title": "Mortes Fabulosas dos Antigos",
+      "instructions": "Keep the original purple textured paper and engraved classical sculpted stone head in the lower half. Remove the author's name, book title and bottom publisher logo and all typography, filling with matching plain purple texture."
+    },
+    {
+      "title": "O Adeus às Armas",
+      "instructions": "Keep the black vintage ambulance at the top, red background and cyan/blue painted central field and rough brushwork, preserving exact composition. Remove the author name, title and bottom publisher seal and all lettering; fill with matching underlying red or blue paint."
+    }
+  ]
+}
