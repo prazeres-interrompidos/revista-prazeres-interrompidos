@@ -39,3 +39,6 @@ body.touch-reader .reading-tools button{min-height:44px;min-width:44px;padding:8
 .index-item{gap:16px;align-items:baseline}.index-item>span:first-child{min-width:0}.index-item>span:last-child{flex-shrink:0}
 .index-item.index-section{padding:17px 0 10px;border-top:1px solid #b9aa98;color:var(--wine);font:700 20px/1.25 Georgia,serif}.index-section strong{font:inherit}
 .index-item.index-subitem{padding:12px 0 12px 20px;border-top:0;font:16px/1.25 Georgia,serif}.index-subitem+.index-subitem{border-top:1px solid #e5dfd3}.index-subitem small{font:10px/1.35 Arial,sans-serif;margin-top:4px}
+
+/* Uma página independente para o Editorial opcional. */
+.editorial-page .eyebrow,.editorial-page h2{flex-shrink:0}.editorial-prose{font:16px/1.55 Georgia,serif;flex-shrink:0;white-space:normal}.page .editorial-author{font:12px/1.5 Arial,sans-serif;margin:20px 0 14px;flex-shrink:0;white-space:normal}
