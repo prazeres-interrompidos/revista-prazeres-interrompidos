@@ -23,7 +23,7 @@ function palette(data,width,height){
 function fingerprint(source){let hash=2166136261;for(let i=0;i<source.length;i++)hash=Math.imul(hash^source.charCodeAt(i),16777619);return hash>>>0}
 function artworkReference(source,region){return {source,region,artwork:artworkMap[fingerprint(source)+':'+source.length]}}
 function referenceFor(article){
- if(typeof article.bookCover==='string'&&article.bookCover.trim()){const ref=artworkReference(article.bookCover);ref.metadata=[article.title,article.author,article.publisher].filter(Boolean).join(' ');if(!ref.artwork){if(root.RevistaArtwork?.valid(article))ref.artwork={source:article.automaticArtwork.image};else {const box=root.RevistaTrailers?.backgroundRegion(article);if(box)ref.artwork={motifBox:box};else ref.automatic=true}}return ref;}
+ if(typeof article.bookCover==='string'&&article.bookCover.trim()){const ref=artworkReference(article.bookCover);ref.metadata=[article.title,article.author,article.publisher].filter(Boolean).join(' ');if(article.backgroundWithLetters===true){ref.withLetters=true;ref.artwork={source:article.bookCover}}else if(!ref.artwork){if(root.RevistaArtwork?.valid(article))ref.artwork={source:article.automaticArtwork.image};else {const box=root.RevistaTrailers?.backgroundRegion(article);if(box)ref.artwork={motifBox:box};else ref.automatic=true}}return ref;}
  if(article.imageType==='cover'&&article.cover)return artworkReference(article.cover);
  if(article.cover&&article.bookCoverRegion?.corners?.length===4)return artworkReference(article.cover,article.bookCoverRegion);
  // Referência identificada visualmente, limitada ao cartaz verificado.
@@ -40,7 +40,7 @@ function extractBook(image,region){
 }
 function bookMotif(book,region){
  const box=region?.motifBox||[0,0,1,1],canvas=document.createElement('canvas');canvas.width=320;canvas.height=Math.max(1,Math.min(720,Math.round(320*book.height*(region?.preserveFrame?1:box[3]/box[2])/book.width)));const ctx=canvas.getContext('2d',{willReadFrequently:true});ctx.drawImage(book,book.width*box[0],book.height*box[1],book.width*box[2],book.height*box[3],region?.preserveFrame?canvas.width*box[0]:0,region?.preserveFrame?canvas.height*box[1]:0,region?.preserveFrame?canvas.width*box[2]:canvas.width,region?.preserveFrame?canvas.height*box[3]:canvas.height);
- const pixels=ctx.getImageData(0,0,canvas.width,canvas.height);for(let i=0;i<pixels.data.length;i+=4){const x=(i/4)%canvas.width,y=Math.floor(i/4/canvas.width),light=(pixels.data[i]*.2126+pixels.data[i+1]*.7152+pixels.data[i+2]*.0722)/255;let alpha=Math.max(0,Math.min(1,(light-.025)/.20));if(region?.removeCaption&&x>canvas.width*.53&&y<canvas.height*.22)alpha=0;const fade=Math.max(0,Math.min(1,x/(canvas.width*.10),(canvas.width-1-x)/(canvas.width*.10),y/(canvas.height*.08),(canvas.height-1-y)/(canvas.height*.08)));pixels.data[i+3]=Math.round(pixels.data[i+3]*alpha*fade)}ctx.putImageData(pixels,0,0);const motif=canvas.toDataURL('image/webp',.8);canvas.width=canvas.height=1;return motif;
+ const pixels=ctx.getImageData(0,0,canvas.width,canvas.height);for(let i=0;i<pixels.data.length;i+=4){const x=(i/4)%canvas.width,y=Math.floor(i/4/canvas.width),light=(pixels.data[i]*.2126+pixels.data[i+1]*.7152+pixels.data[i+2]*.0722)/255;let alpha=region?.keepInk?1:Math.max(0,Math.min(1,(light-.025)/.20));if(region?.removeCaption&&x>canvas.width*.53&&y<canvas.height*.22)alpha=0;const fade=Math.max(0,Math.min(1,x/(canvas.width*.10),(canvas.width-1-x)/(canvas.width*.10),y/(canvas.height*.08),(canvas.height-1-y)/(canvas.height*.08)));pixels.data[i+3]=Math.round(pixels.data[i+3]*alpha*fade)}ctx.putImageData(pixels,0,0);const motif=canvas.toDataURL('image/webp',.8);canvas.width=canvas.height=1;return motif;
 }
 function loadImage(source){return new Promise(resolve=>{const image=new Image();let done=false;const finish=value=>{if(done)return;done=true;clearTimeout(timer);resolve(value)},timer=setTimeout(()=>finish(null),10000);image.onload=()=>finish(image);image.onerror=()=>finish(null);if(!/^data:/i.test(source))image.crossOrigin='anonymous';image.src=source})}
 function imageTheme(reference){
@@ -48,7 +48,8 @@ function imageTheme(reference){
  const promise=(async()=>{const fallback={...palette(new Uint8ClampedArray(0),1,1),motif:''};try{
   const image=await loadImage(reference.source);if(!image)return fallback;
   const book=extractBook(image,reference.region),sample=document.createElement('canvas');sample.width=64;sample.height=88;const ctx=sample.getContext('2d',{willReadFrequently:true});ctx.drawImage(book,0,0,64,88);const colors=palette(ctx.getImageData(0,0,64,88).data,64,88);let motif='';
-  if(reference.artwork?.source){const cleanImage=await loadImage(reference.artwork.source);if(cleanImage){const clean=extractBook(cleanImage);motif=bookMotif(clean);clean.width=clean.height=1}}
+  if(reference.withLetters)motif=bookMotif(book,{keepInk:true});
+  else if(reference.artwork?.source){const cleanImage=await loadImage(reference.artwork.source);if(cleanImage){const clean=extractBook(cleanImage);motif=bookMotif(clean);clean.width=clean.height=1}}
   else if(reference.artwork?.motifBox)motif=bookMotif(book,reference.artwork);
   else if(reference.region?.removeCaption)motif=bookMotif(book,reference.region);
   else if(reference.automatic&&root.RevistaArtwork){try{const prepared=await root.RevistaArtwork.prepare(reference.source,reference.metadata);const cleanImage=await loadImage(prepared.image);if(cleanImage){const clean=extractBook(cleanImage);motif=bookMotif(clean);clean.width=clean.height=1}}catch(error){console.warn(error.message)}}
@@ -67,6 +68,6 @@ function start(pages,articles){
  pending=Promise.all([...chosen].map(async index=>[index,await imageTheme(referenceFor(articles[index]))])).then(themes=>{if(current!==generation)return;style.textContent=themes.map(([index,theme])=>cssFor(index,theme)).join('\n');style.dataset.ready='true'});
 }
 function reading(container,article,articles){container.classList.remove('episode-themed',...Array.from(container.classList).filter(c=>c.startsWith('episode-theme-')));const index=articles.indexOf(article);if(chosen.has(index))container.classList.add('episode-themed','episode-theme-'+index)}
-async function prepareArticle(article,notify){const ref=referenceFor(article);if(!ref?.automatic)return;const source=article.bookCover,result=await root.RevistaArtwork.prepare(source,ref.metadata,notify);if(article.bookCover===source){article.automaticArtwork=result;delete article.bookArtworkRegion;delete article.bookArtwork}}
+async function prepareArticle(article,notify){const ref=referenceFor(article);if(!ref?.automatic)return;const source=article.bookCover,result=await root.RevistaArtwork.prepare(source,ref.metadata,notify);if(article.bookCover===source&&article.backgroundWithLetters!==true){article.automaticArtwork=result;delete article.bookArtworkRegion;delete article.bookArtwork}}
 root.RevistaTheme={start,reading,prepareArticle,isPrepared:article=>!!referenceFor(article)?.artwork,ready:()=>pending,css:()=>style.textContent};
 })(window);
