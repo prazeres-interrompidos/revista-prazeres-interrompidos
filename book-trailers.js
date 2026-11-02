@@ -15,6 +15,6 @@ for(const event of ['pointerdown','pointerup','mousedown','mouseup','touchstart'
 document.addEventListener('click',e=>{const el=e.target.closest?.('.trailer-card');if(!el)return;e.stopPropagation();if(e.target.closest('[data-trailer-play]')){e.preventDefault();start(el)}else if(e.target.closest('[data-trailer-stop]')){e.preventDefault();stop()}},true);
 document.addEventListener('visibilitychange',()=>{if(document.hidden)stop()});
 document.addEventListener('pi-audio-play',stop);
-function sample(){return {title:'Na Tua Mão',author:'Hélder Teixeira Aguiar',publisher:'Gradiva',youtube:'https://youtube.com/shorts/sQDyC6LcOww',bookCover:'assets/book-trailers/na-tua-mao.webp',bookArtworkRegion:{motifBox:[0,0,.49,.70]}}}
+function sample(){return {title:'Na Tua Mão',author:'Hélder Teixeira Aguiar',publisher:'Gradiva',youtube:'https://youtube.com/shorts/sQDyC6LcOww',audio:'https://prazeres-interrompidos.github.io/podcast-prazeres-interrompidos/episodios/episodio-ece8baed06f1160adba8/',bookCover:'assets/book-trailers/na-tua-mao.webp',bookArtworkRegion:{motifBox:[0,0,.49,.70]}}}
 root.RevistaTrailers={videoId,markup,stop,keepVisible,sample};
 })(window);
