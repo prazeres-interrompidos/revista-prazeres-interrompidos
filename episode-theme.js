@@ -38,9 +38,19 @@ function extractBook(image,region){
  for(let y=0;y<canvas.height;y++)for(let x=0;x<canvas.width;x++){const u=x/(canvas.width-1),v=y/(canvas.height-1),top=points[0].map((a,k)=>a*(1-u)+points[1][k]*u),bottom=points[3].map((a,k)=>a*(1-u)+points[2][k]*u),sx=Math.min(original.width-1,Math.round((top[0]*(1-v)+bottom[0]*v)*original.width)),sy=Math.min(original.height-1,Math.round((top[1]*(1-v)+bottom[1]*v)*original.height)),from=(sy*original.width+sx)*4,to=(y*canvas.width+x)*4;for(let k=0;k<4;k++)out.data[to+k]=pixels[from+k]}
  context.putImageData(out,0,0);original.width=original.height=1;return canvas;
 }
+// As áreas escuras extensas pertencem ao fundo; não devem desaparecer como pequenos traços pretos.
+function darkBackdrop(pixels,width,height){
+ const count=width*height,dark=new Uint8Array(count),keep=new Uint8Array(count),queue=new Int32Array(count),minimum=Math.max(96,Math.ceil(count*.015));
+ for(let i=0;i<count;i++){const p=i*4;if(pixels[p+3]&&pixels[p]*.2126+pixels[p+1]*.7152+pixels[p+2]*.0722<57.375)dark[i]=1}
+ for(let start=0;start<count;start++){if(dark[start]!==1)continue;let head=0,tail=1;queue[0]=start;dark[start]=2;
+  while(head<tail){const i=queue[head++],x=i%width;if(x&&dark[i-1]===1){dark[i-1]=2;queue[tail++]=i-1}if(x<width-1&&dark[i+1]===1){dark[i+1]=2;queue[tail++]=i+1}if(i>=width&&dark[i-width]===1){dark[i-width]=2;queue[tail++]=i-width}if(i<count-width&&dark[i+width]===1){dark[i+width]=2;queue[tail++]=i+width}}
+  if(tail>=minimum)for(let i=0;i<tail;i++)keep[queue[i]]=1;
+ }
+ return keep;
+}
 function bookMotif(book,region){
  const box=region?.motifBox||[0,0,1,1],canvas=document.createElement('canvas');canvas.width=320;canvas.height=Math.max(1,Math.min(720,Math.round(320*book.height*(region?.preserveFrame?1:box[3]/box[2])/book.width)));const ctx=canvas.getContext('2d',{willReadFrequently:true});ctx.drawImage(book,book.width*box[0],book.height*box[1],book.width*box[2],book.height*box[3],region?.preserveFrame?canvas.width*box[0]:0,region?.preserveFrame?canvas.height*box[1]:0,region?.preserveFrame?canvas.width*box[2]:canvas.width,region?.preserveFrame?canvas.height*box[3]:canvas.height);
- const pixels=ctx.getImageData(0,0,canvas.width,canvas.height);for(let i=0;i<pixels.data.length;i+=4){const x=(i/4)%canvas.width,y=Math.floor(i/4/canvas.width),light=(pixels.data[i]*.2126+pixels.data[i+1]*.7152+pixels.data[i+2]*.0722)/255;let alpha=region?.keepInk?1:Math.max(0,Math.min(1,(light-.025)/.20));if(region?.removeCaption&&x>canvas.width*.53&&y<canvas.height*.22)alpha=0;const fade=Math.max(0,Math.min(1,x/(canvas.width*.10),(canvas.width-1-x)/(canvas.width*.10),y/(canvas.height*.08),(canvas.height-1-y)/(canvas.height*.08)));pixels.data[i+3]=Math.round(pixels.data[i+3]*alpha*fade)}ctx.putImageData(pixels,0,0);const motif=canvas.toDataURL('image/webp',.8);canvas.width=canvas.height=1;return motif;
+ const pixels=ctx.getImageData(0,0,canvas.width,canvas.height),backdrop=region?.keepInk?null:darkBackdrop(pixels.data,canvas.width,canvas.height);for(let i=0;i<pixels.data.length;i+=4){const x=(i/4)%canvas.width,y=Math.floor(i/4/canvas.width),light=(pixels.data[i]*.2126+pixels.data[i+1]*.7152+pixels.data[i+2]*.0722)/255;let alpha=(region?.keepInk||backdrop?.[i/4])?1:Math.max(0,Math.min(1,(light-.025)/.20));if(region?.removeCaption&&x>canvas.width*.53&&y<canvas.height*.22)alpha=0;const fade=Math.max(0,Math.min(1,x/(canvas.width*.10),(canvas.width-1-x)/(canvas.width*.10),y/(canvas.height*.08),(canvas.height-1-y)/(canvas.height*.08)));pixels.data[i+3]=Math.round(pixels.data[i+3]*alpha*fade)}ctx.putImageData(pixels,0,0);const motif=canvas.toDataURL('image/webp',.8);canvas.width=canvas.height=1;return motif;
 }
 function loadImage(source){return new Promise(resolve=>{const image=new Image();let done=false;const finish=value=>{if(done)return;done=true;clearTimeout(timer);resolve(value)},timer=setTimeout(()=>finish(null),10000);image.onload=()=>finish(image);image.onerror=()=>finish(null);if(!/^data:/i.test(source))image.crossOrigin='anonymous';image.src=source})}
 function imageTheme(reference){
