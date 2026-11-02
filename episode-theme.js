@@ -23,7 +23,7 @@ function palette(data,width,height){
 function fingerprint(source){let hash=2166136261;for(let i=0;i<source.length;i++)hash=Math.imul(hash^source.charCodeAt(i),16777619);return hash>>>0}
 function artworkReference(source,region){return {source,region,artwork:artworkMap[fingerprint(source)+':'+source.length]}}
 function referenceFor(article){
- if(typeof article.bookCover==='string'&&article.bookCover.trim()){const ref=artworkReference(article.bookCover);if(article.bookArtwork)ref.artwork={source:article.bookArtwork};else if(article.bookArtworkRegion?.motifBox?.length===4)ref.artwork=article.bookArtworkRegion;return ref;}
+ if(typeof article.bookCover==='string'&&article.bookCover.trim()){const ref=artworkReference(article.bookCover);if(root.RevistaTrailers?.videoId(article.youtube)){const box=root.RevistaTrailers.backgroundRegion(article);if(box)ref.artwork={motifBox:box};}else if(article.bookArtwork)ref.artwork={source:article.bookArtwork};else if(article.bookArtworkRegion?.motifBox?.length===4)ref.artwork=article.bookArtworkRegion;return ref;}
  if(article.imageType==='cover'&&article.cover)return artworkReference(article.cover);
  if(article.cover&&article.bookCoverRegion?.corners?.length===4)return artworkReference(article.cover,article.bookCoverRegion);
  // Referência identificada visualmente, limitada ao cartaz verificado.
@@ -67,5 +67,5 @@ function start(pages,articles){
  pending=Promise.all([...chosen].map(async index=>[index,await imageTheme(referenceFor(articles[index]))])).then(themes=>{if(current!==generation)return;style.textContent=themes.map(([index,theme])=>cssFor(index,theme)).join('\n');style.dataset.ready='true'});
 }
 function reading(container,article,articles){container.classList.remove('episode-themed',...Array.from(container.classList).filter(c=>c.startsWith('episode-theme-')));const index=articles.indexOf(article);if(chosen.has(index))container.classList.add('episode-themed','episode-theme-'+index)}
-root.RevistaTheme={start,reading,ready:()=>pending,css:()=>style.textContent};
+root.RevistaTheme={start,reading,isPrepared:article=>!!referenceFor(article)?.artwork,ready:()=>pending,css:()=>style.textContent};
 })(window);
