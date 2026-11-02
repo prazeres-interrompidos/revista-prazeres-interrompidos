@@ -17,7 +17,7 @@ function palette(data,width,height){
   const key=rgb.map(v=>Math.floor(v/32)).join(','),bin=bins.get(key)||{score:0,sum:[0,0,0],count:0};bin.score+=sat*sat*edge;bin.count++;rgb.forEach((v,k)=>bin.sum[k]+=v);bins.set(key,bin);
  }
  const best=[...bins.values()].sort((a,b)=>b.score-a.score)[0];let accent=best?best.sum.map(v=>Math.round(v/best.count)):[83,43,53];
- const paper=blend([250,247,239],accent,.025),darkestPaper=blend(paper,[0,0,0],.18);while(contrast(accent,paper)<5.5||contrast(accent,darkestPaper)<4.5||contrast(accent,[255,255,255])<5.5)accent=accent.map(v=>Math.floor(v*.94));
+ const paper=blend([250,247,239],accent,.025),darkestPaper=blend(paper,[0,0,0],.24);while(contrast(accent,paper)<5.5||contrast(accent,darkestPaper)<4.5||contrast(accent,[255,255,255])<5.5)accent=accent.map(v=>Math.floor(v*.94));
  return {accent,paper,border:blend(paper,accent,.24),track:blend(paper,accent,.22),player:blend(paper,accent,.07),hover:accent.map(v=>Math.floor(v*.8))};
 }
 function fingerprint(source){let hash=2166136261;for(let i=0;i<source.length;i++)hash=Math.imul(hash^source.charCodeAt(i),16777619);return hash>>>0}
