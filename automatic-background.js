@@ -1,31 +1,31 @@
 /* Preparação local da ilustração: OCR e reconstrução dos espaços ocupados por letras. */
 (function(root){
 'use strict';
-const version=5,jobs=new Map();let workerPromise,queue=Promise.resolve(),databasePromise;
+const version=7,jobs=new Map();let workerPromise,queue=Promise.resolve(),databasePromise;
 const fingerprint=source=>{let h=2166136261;for(let i=0;i<source.length;i++)h=Math.imul(h^source.charCodeAt(i),16777619);return (h>>>0)+':'+source.length};
 const normalize=s=>String(s||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toUpperCase().replace(/[^A-Z]/g,'');
 function distance(a,b){let row=Array.from({length:b.length+1},(_,i)=>i);for(let i=1;i<=a.length;i++){const next=[i];for(let j=1;j<=b.length;j++)next[j]=Math.min(next[j-1]+1,row[j]+1,row[j-1]+(a[i-1]!==b[j-1]));row=next}return row[b.length]}
 // Os limites das palavras são mais seguros do que o retângulo da linha inteira:
 // o OCR pode juntar uma palavra à ilustração que fica por baixo dela.
-function textBoxes(data,metadata,width,height){
- const tokens=String(metadata||'').split(/\s+/).map(normalize).filter(s=>s.length>=2),boxes=[];
- const matches=s=>s.length>=3&&tokens.some(t=>distance(s,t)<=Math.min(2,Math.floor(t.length*.34))||(s.length>=5&&t.includes(s)));
- const boxFor=(b,pad)=>[Math.max(0,b.x0-pad),Math.max(0,b.y0-pad),Math.min(width,b.x1+pad),Math.min(height,b.y1+pad)];
+function textBoxes(data,metadata,width,height,frameHeight=height){
+ const tokens=String(metadata||'').split(/\s+/).map(normalize).filter(s=>s.length>=1),boxes=[];
+ const matches=s=>s.length>=3&&tokens.some(t=>Math.min(s.length,t.length)/Math.max(s.length,t.length)>=.7&&distance(s,t)<=(t.length<=5?1:Math.min(4,Math.ceil(t.length*.34)))||(s.length>=5&&t.includes(s)));
+ const boxFor=(b,pad,side=pad)=>[Math.max(0,b.x0-side),Math.max(0,b.y0-pad),Math.min(width,b.x1+side),Math.min(height,b.y1+pad)];
  for(const block of data.blocks||[])for(const paragraph of block.paragraphs||[])for(const line of paragraph.lines||[]){
-  const words=(line.words||[]).map(w=>({...w,plain:normalize(w.text)})),anchors=words.filter(w=>matches(w.plain)&&w.bbox.y1-w.bbox.y0<=height*.22);
+  const words=(line.words||[]).map(w=>({...w,plain:normalize(w.text)})),anchors=words.filter(w=>{const h=w.bbox.y1-w.bbox.y0;return w.plain!=='VOL'&&h<=frameHeight*.22&&(matches(w.plain)||(w.plain.length>=3&&w.confidence>=60&&w.bbox.x1-w.bbox.x0>=h*1.6))});
   if(anchors.length){
-   const shortAnchors=words.filter(w=>w.plain.length===2&&w.confidence>=60&&tokens.includes(w.plain)&&w.bbox.y1-w.bbox.y0<=height*.22);anchors.push(...shortAnchors);
+   const shortAnchors=words.filter(w=>w.plain.length===2&&w.confidence>=60&&tokens.includes(w.plain)&&w.bbox.y1-w.bbox.y0<=frameHeight*.22);anchors.push(...shortAnchors);
    const anchor=anchors.reduce((a,b)=>(a.bbox.y1-a.bbox.y0)<(b.bbox.y1-b.bbox.y0)?a:b),h=anchor.bbox.y1-anchor.bbox.y0,aligned=[];
-   for(const word of words){if(word.plain.length<2)continue;const b={...word.bbox},overlap=Math.min(b.y1,anchor.bbox.y1)-Math.max(b.y0,anchor.bbox.y0);if(overlap<h*.55)continue;
+   for(const word of words){if(word.plain.length<2&&!(word.confidence>=60&&tokens.includes(word.plain)))continue;const b={...word.bbox},overlap=Math.min(b.y1,anchor.bbox.y1)-Math.max(b.y0,anchor.bbox.y0);if(overlap<h*.55)continue;
     if(b.y1-b.y0>h*1.55){b.y0=anchor.bbox.y0;b.y1=anchor.bbox.y1}
-    if(b.y1-b.y0>height*.24||(b.x1-b.x0)*(b.y1-b.y0)>width*height*.18)continue;aligned.push(b);
+    if(b.y1-b.y0>frameHeight*.24||(b.x1-b.x0)*(b.y1-b.y0)>width*height*.18)continue;aligned.push(b);
    }
    aligned.sort((a,b)=>a.x0-b.x0);let merged;
-   for(const b of aligned){if(merged&&b.x0-merged.x1<h*3){merged.x1=Math.max(merged.x1,b.x1);merged.y0=Math.min(merged.y0,b.y0);merged.y1=Math.max(merged.y1,b.y1)}else{if(merged)boxes.push(boxFor(merged,Math.max(1,h*.12)));merged={...b}}}
-   if(merged)boxes.push(boxFor(merged,Math.max(1,h*.12)));
+   for(const b of aligned){if(merged&&b.x0-merged.x1<h*3){merged.x1=Math.max(merged.x1,b.x1);merged.y0=Math.min(merged.y0,b.y0);merged.y1=Math.max(merged.y1,b.y1)}else{if(merged)boxes.push(boxFor(merged,Math.max(1,h*.12),Math.max(1,h*.85)));merged={...b}}}
+   if(merged)boxes.push(boxFor(merged,Math.max(1,h*.12),Math.max(1,h*.85)));
   }else for(const word of words){const b=word.bbox,h=b.y1-b.y0,w=b.x1-b.x0;
    if(word.plain==='VOL'&&word.confidence>=60){boxes.push(boxFor({x0:b.x0-h*1.5,y0:b.y0-h,x1:b.x1,y1:b.y1},Math.max(1,h*.12)));continue}
-   if(word.plain.length>=3&&word.confidence>=85&&h<=height*.12&&w>=h*1.8)boxes.push(boxFor(b,Math.max(1,h*.12)));
+   if(word.plain.length>=3&&word.confidence>=60&&h<=frameHeight*.22&&w>=h*1.6)boxes.push(boxFor(b,Math.max(1,h*.12)));
   }
  }
  return boxes;
@@ -46,10 +46,10 @@ async function prepare(source,metadata='',notify=()=>{}){const key=version+':'+f
  // A análise da capa inteira pode confundir a ilustração com as letras pequenas do rodapé.
  // Repetir em faixas sobrepostas e ampliadas permite detetar títulos e legendas separados.
  const strip=document.createElement('canvas'),stripContext=strip.getContext('2d',{willReadFrequently:true});
- for(const [top,bottom] of [[0,.45],[.35,.75],[.65,1]]){const y=Math.round(canvas.height*top),h=Math.min(canvas.height-y,Math.round(canvas.height*(bottom-top))),zoom=Math.max(1,Math.min(3,1000/canvas.width));strip.width=Math.round(canvas.width*zoom);strip.height=Math.round(h*zoom);ctx.putImageData(original,0,0);stripContext.drawImage(canvas,0,y,canvas.width,h,0,0,strip.width,strip.height);const {data}=await ocr.recognize(strip,{}, {blocks:true,text:true});const found=textBoxes(data,metadata,strip.width,strip.height);boxes.push(...found.map(b=>[b[0]/zoom,b[1]/zoom+y,b[2]/zoom,b[3]/zoom+y]));notify('A verificar também as letras do topo e do rodapé da capa…')}
+ for(const [top,bottom] of [[0,.45],[.35,.75],[.65,1]]){const y=Math.round(canvas.height*top),h=Math.min(canvas.height-y,Math.round(canvas.height*(bottom-top))),zoom=Math.max(1,Math.min(3,1000/canvas.width));strip.width=Math.round(canvas.width*zoom);strip.height=Math.round(h*zoom);ctx.putImageData(original,0,0);stripContext.drawImage(canvas,0,y,canvas.width,h,0,0,strip.width,strip.height);const {data}=await ocr.recognize(strip,{}, {blocks:true,text:true});const found=textBoxes(data,metadata,strip.width,strip.height,canvas.height*zoom);boxes.push(...found.map(b=>[b[0]/zoom,b[1]/zoom+y,b[2]/zoom,b[3]/zoom+y]));notify('A verificar também as letras do topo e do rodapé da capa…')}
  strip.width=strip.height=1;
  if(!boxes.length)throw Error('Não foi possível identificar as letras desta capa. O fundo fica apenas com as suas cores até ser possível prepará-lo.');
  const clean=document.createElement('canvas');clean.width=360;clean.height=Math.max(1,Math.round(360*canvas.height/canvas.width));const output=clean.getContext('2d',{willReadFrequently:true});ctx.putImageData(original,0,0);output.drawImage(canvas,0,0,clean.width,clean.height);const pixels=output.getImageData(0,0,clean.width,clean.height);erase(pixels.data,clean.width,clean.height,boxes.map(b=>b.map(n=>n*clean.width/canvas.width)));output.putImageData(pixels,0,0);const value={version,source:fingerprint(source),image:clean.toDataURL('image/webp',.88)};canvas.width=canvas.height=clean.width=clean.height=1;await cached(key,value);return value}));notify('Fundo preparado automaticamente, sem letras.');return result})();jobs.set(key,job);job.catch(()=>jobs.delete(key));return job}
-function valid(article){return article?.automaticArtwork?.version===version&&article.automaticArtwork.source===fingerprint(article.bookCover||'')&&/^data:image\/webp;base64,/.test(article.automaticArtwork.image||'')}
+function valid(article){return [4,version].includes(article?.automaticArtwork?.version)&&article.automaticArtwork.source===fingerprint(article.bookCover||'')&&/^data:image\/webp;base64,/.test(article.automaticArtwork.image||'')}
 root.RevistaArtwork={prepare,valid,fingerprint,version,textBoxes,erase};
 })(typeof window==='undefined'?globalThis:window);
