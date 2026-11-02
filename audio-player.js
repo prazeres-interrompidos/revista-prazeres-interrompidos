@@ -68,7 +68,7 @@ function sync(){
 function toggle(index){
  const a=articles[index],id=key(a),state=states.get(id);if(state?.status!=='ready')return;
  if(id===active&&!audio.paused){audio.pause();return}
- if(id!==active){audio.pause();active=id;audio.src=state.url}
+ document.dispatchEvent(new Event('pi-audio-play'));if(id!==active){audio.pause();active=id;audio.src=state.url}
  busy=true;sync();audio.play().catch(error=>{busy=false;if(error.name!=='NotAllowedError'&&error.name!=='AbortError')state.status='error';sync()});
 }
 function setArticles(list){audio.pause();audio.removeAttribute('src');audio.load();active='';busy=false;articles=list||[];sync()}
@@ -78,5 +78,5 @@ document.addEventListener('input',e=>{if(!e.target.matches('.mini-range'))return
 for(const event of ['play','pause','timeupdate','durationchange','loadedmetadata','ended'])audio.addEventListener(event,sync);
 audio.addEventListener('waiting',()=>{busy=true;sync()});audio.addEventListener('playing',()=>{busy=false;sync()});audio.addEventListener('canplay',()=>{busy=false;sync()});
 audio.addEventListener('error',()=>{if(!active)return;const state=states.get(active);if(state)state.status='error';busy=false;sync()});
-root.RevistaAudio={markup,setArticles,prepare,prepareVisible};
+root.RevistaAudio={markup,setArticles,prepare,prepareVisible,pause:()=>audio.pause()};
 })(window);

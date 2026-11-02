@@ -23,7 +23,7 @@ function palette(data,width,height){
 function fingerprint(source){let hash=2166136261;for(let i=0;i<source.length;i++)hash=Math.imul(hash^source.charCodeAt(i),16777619);return hash>>>0}
 function artworkReference(source,region){return {source,region,artwork:artworkMap[fingerprint(source)+':'+source.length]}}
 function referenceFor(article){
- if(typeof article.bookCover==='string'&&article.bookCover.trim())return artworkReference(article.bookCover);
+ if(typeof article.bookCover==='string'&&article.bookCover.trim()){const ref=artworkReference(article.bookCover);if(article.bookArtwork)ref.artwork={source:article.bookArtwork};else if(article.bookArtworkRegion?.motifBox?.length===4)ref.artwork=article.bookArtworkRegion;return ref;}
  if(article.imageType==='cover'&&article.cover)return artworkReference(article.cover);
  if(article.cover&&article.bookCoverRegion?.corners?.length===4)return artworkReference(article.cover,article.bookCoverRegion);
  // Referência identificada visualmente, limitada ao cartaz verificado.
