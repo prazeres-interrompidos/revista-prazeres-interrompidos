@@ -38,46 +38,46 @@ function extractBook(image,region){
  for(let y=0;y<canvas.height;y++)for(let x=0;x<canvas.width;x++){const u=x/(canvas.width-1),v=y/(canvas.height-1),top=points[0].map((a,k)=>a*(1-u)+points[1][k]*u),bottom=points[3].map((a,k)=>a*(1-u)+points[2][k]*u),sx=Math.min(original.width-1,Math.round((top[0]*(1-v)+bottom[0]*v)*original.width)),sy=Math.min(original.height-1,Math.round((top[1]*(1-v)+bottom[1]*v)*original.height)),from=(sy*original.width+sx)*4,to=(y*canvas.width+x)*4;for(let k=0;k<4;k++)out.data[to+k]=pixels[from+k]}
  context.putImageData(out,0,0);original.width=original.height=1;return canvas;
 }
-// As áreas escuras extensas pertencem ao fundo; não devem desaparecer como pequenos traços pretos.
-function darkBackdrop(pixels,width,height){
- const count=width*height,dark=new Uint8Array(count),keep=new Uint8Array(count),queue=new Int32Array(count),minimum=Math.max(96,Math.ceil(count*.015));
- for(let i=0;i<count;i++){const p=i*4;if(pixels[p+3]&&pixels[p]*.2126+pixels[p+1]*.7152+pixels[p+2]*.0722<57.375)dark[i]=1}
- for(let start=0;start<count;start++){if(dark[start]!==1)continue;let head=0,tail=1;queue[0]=start;dark[start]=2;
-  while(head<tail){const i=queue[head++],x=i%width;if(x&&dark[i-1]===1){dark[i-1]=2;queue[tail++]=i-1}if(x<width-1&&dark[i+1]===1){dark[i+1]=2;queue[tail++]=i+1}if(i>=width&&dark[i-width]===1){dark[i-width]=2;queue[tail++]=i-width}if(i<count-width&&dark[i+width]===1){dark[i+width]=2;queue[tail++]=i+width}}
-  if(tail>=minimum)for(let i=0;i<tail;i++)keep[queue[i]]=1;
- }
- return keep;
-}
-function bookMotif(book,region){
+// Os ajustes afetam apenas a imagem de fundo; texto e leitores mantêm a sua apresentação.
+function adjustments(article){const raw=article?.backgroundAdjustments||{},number=(key,fallback,min,max)=>{const value=Number(raw[key]);return Number.isFinite(value)&&raw[key]!==undefined?Math.max(min,Math.min(max,value)):fallback};return {transparency:number('transparency',76,0,100),brightness:number('brightness',100,50,150),contrast:number('contrast',100,50,150),sharpness:number('sharpness',0,0,100),color:raw.color==='grayscale'?'grayscale':'color'}}
+function filterFor(settings){return 'brightness('+(settings.brightness/100)+') contrast('+(settings.contrast/100)+') saturate(1.12) grayscale('+(settings.color==='grayscale'?1:0)+')'}
+function sharpen(pixels,width,height,strength){const source=new Uint8ClampedArray(pixels),amount=strength/100*.35;for(let y=1;y<height-1;y++)for(let x=1;x<width-1;x++){const i=(y*width+x)*4;for(let c=0;c<3;c++)pixels[i+c]=source[i+c]+amount*(4*source[i+c]-source[i-4+c]-source[i+4+c]-source[i-width*4+c]-source[i+width*4+c])}return pixels}
+function bookMotif(book,region,sharpness=0){
  const box=region?.motifBox||[0,0,1,1],canvas=document.createElement('canvas');canvas.width=320;canvas.height=Math.max(1,Math.min(720,Math.round(320*book.height*(region?.preserveFrame?1:box[3]/box[2])/book.width)));const ctx=canvas.getContext('2d',{willReadFrequently:true});ctx.drawImage(book,book.width*box[0],book.height*box[1],book.width*box[2],book.height*box[3],region?.preserveFrame?canvas.width*box[0]:0,region?.preserveFrame?canvas.height*box[1]:0,region?.preserveFrame?canvas.width*box[2]:canvas.width,region?.preserveFrame?canvas.height*box[3]:canvas.height);
- const pixels=ctx.getImageData(0,0,canvas.width,canvas.height),backdrop=region?.keepInk?null:darkBackdrop(pixels.data,canvas.width,canvas.height);for(let i=0;i<pixels.data.length;i+=4){const x=(i/4)%canvas.width,y=Math.floor(i/4/canvas.width),light=(pixels.data[i]*.2126+pixels.data[i+1]*.7152+pixels.data[i+2]*.0722)/255;let alpha=(region?.keepInk||backdrop?.[i/4])?1:Math.max(0,Math.min(1,(light-.025)/.20));if(region?.removeCaption&&x>canvas.width*.53&&y<canvas.height*.22)alpha=0;const fade=Math.max(0,Math.min(1,x/(canvas.width*.10),(canvas.width-1-x)/(canvas.width*.10),y/(canvas.height*.08),(canvas.height-1-y)/(canvas.height*.08)));pixels.data[i+3]=Math.round(pixels.data[i+3]*alpha*fade)}ctx.putImageData(pixels,0,0);const motif=canvas.toDataURL('image/webp',.8);canvas.width=canvas.height=1;return motif;
+ // A transparência é uniforme e pertence à página. Retirar os tons escuros da
+ // imagem criava buracos claros nos motivos e contornos brancos junto às margens.
+ if(region?.removeCaption){const pixels=ctx.getImageData(0,0,canvas.width,canvas.height);for(let y=0;y<canvas.height*.22;y++)for(let x=Math.ceil(canvas.width*.53);x<canvas.width;x++)pixels.data[(y*canvas.width+x)*4+3]=0;ctx.putImageData(pixels,0,0)}
+ if(sharpness>0){const pixels=ctx.getImageData(0,0,canvas.width,canvas.height);sharpen(pixels.data,canvas.width,canvas.height,sharpness);ctx.putImageData(pixels,0,0)}
+ const motif=canvas.toDataURL('image/webp',.8);canvas.width=canvas.height=1;return motif;
 }
 function loadImage(source){return new Promise(resolve=>{const image=new Image();let done=false;const finish=value=>{if(done)return;done=true;clearTimeout(timer);resolve(value)},timer=setTimeout(()=>finish(null),10000);image.onload=()=>finish(image);image.onerror=()=>finish(null);if(!/^data:/i.test(source))image.crossOrigin='anonymous';image.src=source})}
-function imageTheme(reference){
- const key=JSON.stringify(reference);if(cache.has(key))return cache.get(key);
+function imageTheme(reference,sharpness=0){
+ const key=JSON.stringify([reference,sharpness]);if(cache.has(key))return cache.get(key);
  const promise=(async()=>{const fallback={...palette(new Uint8ClampedArray(0),1,1),motif:''};try{
   const image=await loadImage(reference.source);if(!image)return fallback;
   const book=extractBook(image,reference.region),sample=document.createElement('canvas');sample.width=64;sample.height=88;const ctx=sample.getContext('2d',{willReadFrequently:true});ctx.drawImage(book,0,0,64,88);const colors=palette(ctx.getImageData(0,0,64,88).data,64,88);let motif='';
-  if(reference.withLetters)motif=bookMotif(book,{keepInk:true});
-  else if(reference.artwork?.source){const cleanImage=await loadImage(reference.artwork.source);if(cleanImage){const clean=extractBook(cleanImage);motif=bookMotif(clean);clean.width=clean.height=1}}
-  else if(reference.artwork?.motifBox)motif=bookMotif(book,reference.artwork);
-  else if(reference.region?.removeCaption)motif=bookMotif(book,reference.region);
-  else if(reference.automatic&&root.RevistaArtwork){try{const prepared=await root.RevistaArtwork.prepare(reference.source,reference.metadata);const cleanImage=await loadImage(prepared.image);if(cleanImage){const clean=extractBook(cleanImage);motif=bookMotif(clean);clean.width=clean.height=1}}catch(error){console.warn(error.message)}}
+  if(reference.withLetters)motif=bookMotif(book,{keepInk:true},sharpness);
+  else if(reference.artwork?.source){const cleanImage=await loadImage(reference.artwork.source);if(cleanImage){const clean=extractBook(cleanImage);motif=bookMotif(clean,null,sharpness);clean.width=clean.height=1}}
+  else if(reference.artwork?.motifBox)motif=bookMotif(book,reference.artwork,sharpness);
+  else if(reference.region?.removeCaption)motif=bookMotif(book,reference.region,sharpness);
+  else if(reference.automatic&&root.RevistaArtwork){try{const prepared=await root.RevistaArtwork.prepare(reference.source,reference.metadata);const cleanImage=await loadImage(prepared.image);if(cleanImage){const clean=extractBook(cleanImage);motif=bookMotif(clean,null,sharpness);clean.width=clean.height=1}}catch(error){console.warn(error.message)}}
   book.width=book.height=sample.width=sample.height=1;return {...colors,motif};
  }catch{return fallback}})();cache.set(key,promise);return promise;
 }
-function cssFor(index,theme){
+function cssFor(index,theme,article){
+ const settings=adjustments(article);
  const vars=Object.entries({wine:theme.accent,'episode-paper':theme.paper,'episode-border':theme.border,'episode-track':theme.track,'episode-player':theme.player,'episode-hover':theme.hover}).map(([key,rgb])=>'--'+key+':'+hex(rgb)).join(';');
- return '.episode-theme-'+index+'{'+vars+';--episode-motif:'+(theme.motif?'url("'+theme.motif+'")':'none')+'}';
+ return '.episode-theme-'+index+'{'+vars+';--episode-opacity:'+((100-settings.transparency)/100)+';--episode-filter:'+filterFor(settings)+';--episode-motif:'+(theme.motif?'url("'+theme.motif+'")':'none')+'}';
 }
 function start(pages,articles){
  const current=++generation;style.textContent='';style.dataset.ready='false';const sampleIndex=sample?articles.findIndex(a=>referenceFor(a)):-1;
  chosen=new Set(articles.map((a,i)=>typeof a.bookCover==='string'&&a.bookCover.trim()||i===sampleIndex?i:-1).filter(i=>i>=0));
  if(!chosen.size){pending=Promise.resolve();style.dataset.ready='true';return}
  for(const p of pages){const index=articles.indexOf(p.article);if(!chosen.has(index))continue;p.themeClass='episode-themed episode-theme-'+index;if(p.cls!=='poster-page')p.content='<div class="episode-decoration" aria-hidden="true"><span class="episode-motif-base"></span></div>'+p.content}
- pending=Promise.all([...chosen].map(async index=>[index,await imageTheme(referenceFor(articles[index]))])).then(themes=>{if(current!==generation)return;style.textContent=themes.map(([index,theme])=>cssFor(index,theme)).join('\n');style.dataset.ready='true'});
+ pending=Promise.all([...chosen].map(async index=>[index,await imageTheme(referenceFor(articles[index]),adjustments(articles[index]).sharpness)])).then(themes=>{if(current!==generation)return;style.textContent=themes.map(([index,theme])=>cssFor(index,theme,articles[index])).join('\n');style.dataset.ready='true'});
 }
 function reading(container,article,articles){container.classList.remove('episode-themed',...Array.from(container.classList).filter(c=>c.startsWith('episode-theme-')));const index=articles.indexOf(article);if(chosen.has(index))container.classList.add('episode-themed','episode-theme-'+index)}
 async function prepareArticle(article,notify){const ref=referenceFor(article);if(!ref?.automatic)return;const source=article.bookCover,result=await root.RevistaArtwork.prepare(source,ref.metadata,notify);if(article.bookCover===source&&article.backgroundWithLetters!==true){article.automaticArtwork=result;delete article.bookArtworkRegion;delete article.bookArtwork}}
-root.RevistaTheme={start,reading,prepareArticle,isPrepared:article=>!!referenceFor(article)?.artwork,ready:()=>pending,css:()=>style.textContent};
+async function preview(article){const ref=referenceFor(article);if(!ref)return null;const theme=await imageTheme(ref,adjustments(article).sharpness);return {motif:theme.motif,paper:hex(theme.paper)}}
+root.RevistaTheme={start,reading,prepareArticle,adjustments,filterFor,preview,sharpen,isPrepared:article=>!!referenceFor(article)?.artwork,ready:()=>pending,css:()=>style.textContent};
 })(window);

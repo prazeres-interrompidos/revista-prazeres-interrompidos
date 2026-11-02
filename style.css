@@ -49,7 +49,7 @@ body.touch-reader .reading-tools button{min-height:44px;min-width:44px;padding:8
 
 /* A capa do livro acompanha todas as páginas de texto do episódio. */
 .episode-themed:not(.poster-page){background:var(--episode-paper,var(--paper));border-color:var(--episode-border,#e3dfd5)}.episode-themed:not(.poster-page) .page-inner{background:var(--episode-paper,var(--paper));isolation:isolate}.episode-themed h2,.episode-themed .meta-title,.episode-themed .eyebrow{color:var(--wine)}.episode-themed .folio{border-color:var(--episode-border,#d1c9b9)}
-.episode-decoration{position:absolute;inset:0;z-index:-1;overflow:hidden;pointer-events:none;user-select:none}.episode-motif-base{position:absolute;inset:0;background-image:var(--episode-motif);background-size:cover;background-position:center;background-repeat:no-repeat;opacity:.24;filter:saturate(1.12)}
+.episode-decoration{position:absolute;inset:0;z-index:-1;overflow:hidden;pointer-events:none;user-select:none}.episode-motif-base{position:absolute;inset:0;background-image:var(--episode-motif);background-size:cover;background-position:center;background-repeat:no-repeat;opacity:var(--episode-opacity,.24);filter:var(--episode-filter,saturate(1.12))}
 .episode-themed .mini-player{background:var(--episode-player,#f4ece6);border-color:var(--episode-border,#d4c0bd)}.episode-themed .mini-play:hover{background:var(--episode-hover,var(--wine))}.episode-themed .mini-range{background:linear-gradient(to right,var(--wine) var(--progress,0%),var(--episode-track,#d7c6c4) var(--progress,0%))}#readingContent.episode-themed{background:var(--episode-paper,var(--paper));position:relative;isolation:isolate}
 
 /* Book Trailers: moldura e botão adotam as cores da capa. */
