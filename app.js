@@ -33,6 +33,14 @@ const available=640-parseFloat(getComputedStyle(inner).paddingBottom)-folio.offs
 let size=16;while(block.offsetHeight>available&&size>1){size-=.25;block.style.fontSize=size+'px'}
 entry.content=entry.content.replace('class="editorial-prose article-prose"','class="editorial-prose article-prose" style="font-size:'+size+'px"');
 }
+function balanceContentsEnd(sheets,canFit){
+ if(sheets.length<2||sheets[sheets.length-1].length!==1)return sheets;
+ const last=sheets[sheets.length-1],previous=sheets[sheets.length-2];
+ // Evitar uma última página com uma entrada isolada; o título de uma secção
+ // nunca fica separado do seu primeiro episódio.
+ for(const minimum of [3,2]){let start=previous.length-(minimum-last.length);if(previous[start-1]?.kind==='section')start--;if(start<2)continue;const moved=previous.slice(start),candidate=[...moved,...last];if(canFit(candidate)){previous.splice(start);last.unshift(...moved);break}}
+ return sheets;
+}
 function paginateContents(entries){
  // A paginação usa a altura real de cada título e autor, com espaço reservado
  // para o cabeçalho e o fólio. Um título de secção acompanha sempre o primeiro item.
@@ -41,7 +49,7 @@ function paginateContents(entries){
  const openSheet=first=>{host.innerHTML='<div class="page-inner"><div class="eyebrow">NESTA EDIÇÃO</div>'+(first?'<h2>Índice.</h2>':'')+'<div class="folio"><span>PRAZERES INTERROMPIDOS</span><span>0000</span></div></div>';inner=host.firstElementChild;folio=inner.lastElementChild};
  const rowFor=entry=>{const wrapper=document.createElement('div');wrapper.innerHTML=contentsEntry({...entry,start:999});return wrapper.firstElementChild};
  const fits=row=>row.offsetTop+row.getBoundingClientRect().height<=640-parseFloat(getComputedStyle(inner).paddingBottom)-folio.getBoundingClientRect().height-8;
- try{openSheet(true);entries.forEach((entry,i)=>{let sheet=sheets[sheets.length-1],row=rowFor(entry);inner.insertBefore(row,folio);const next=entry.kind==='section'&&entries[i+1]?.kind==='item'?rowFor(entries[i+1]):null;if(next)inner.insertBefore(next,folio);const room=fits(next||row);next?.remove();if(!room&&sheet.length){sheets.push(sheet=[]);openSheet(false);row=rowFor(entry);inner.insertBefore(row,folio)}sheet.push(entry)});return sheets}finally{host.remove()}
+ try{openSheet(true);entries.forEach((entry,i)=>{let sheet=sheets[sheets.length-1],row=rowFor(entry);inner.insertBefore(row,folio);const next=entry.kind==='section'&&entries[i+1]?.kind==='item'?rowFor(entries[i+1]):null;if(next)inner.insertBefore(next,folio);const room=fits(next||row);next?.remove();if(!room&&sheet.length){sheets.push(sheet=[]);openSheet(false);row=rowFor(entry);inner.insertBefore(row,folio)}sheet.push(entry)});return balanceContentsEnd(sheets,candidate=>{openSheet(false);let row;for(const entry of candidate){row=rowFor(entry);inner.insertBefore(row,folio)}return !row||fits(row)})}finally{host.remove()}
 }
 function contentsEntry(entry){const section=entry.kind!=='item';return '<button class="index-item '+(section?'index-section':'index-subitem')+'" data-page="'+entry.start+'"><span>'+(section?'<strong>'+esc(entry.title)+'</strong>':esc(entry.title))+(entry.subtitle?'<small>'+esc(entry.subtitle)+'</small>':'')+'</span><span>'+(entry.start+1)+'</span></button>'}
 function episodePlayer(a,i,cls=''){return window.RevistaAudio?window.RevistaAudio.markup(a,i,cls):'<a class="listen" data-pdf-audio="true" href="'+esc(safeURL(a.audio))+'" target="_blank" rel="noopener">▶ Ouvir o episódio</a>'}

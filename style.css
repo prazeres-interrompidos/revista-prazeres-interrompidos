@@ -70,7 +70,7 @@ body.touch-reader .reading-tools button{min-height:44px;min-width:44px;padding:8
 .toc h2{font-size:34px;margin-bottom:18px;flex-shrink:0}
 .toc .index-item{flex-shrink:0;break-inside:avoid;page-break-inside:avoid}
 .toc .index-item.index-section{padding:11px 0 7px}
-.toc .index-item.index-subitem{padding:7px 0 7px 18px}
+.toc .index-item.index-subitem{padding:6px 0 6px 18px;font-size:15px}
 .toc .index-item>span:first-child{overflow-wrap:anywhere}
 .toc .folio{flex-shrink:0}
 
