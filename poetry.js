@@ -16,15 +16,9 @@ function paginate(value,fits,nextPage){
  function append(piece){const candidate=current.map(p=>({...p}));const tail=candidate[candidate.length-1];if(tail&&tail.poem===piece.poem)tail.text+=piece.text;else candidate.push({...piece});return candidate}
  function flush(){pages.push(serialize(current));current=[];nextPage()}
  function put(piece){let candidate=append(piece);if(current.length&&!fits(serialize(candidate))){flush();candidate=append(piece)}current=candidate}
+ // Fill the available lines, even when a poem or stanza crosses a page.
  for(const part of parse(value)){
-  if(!part.poem){for(const token of part.text.match(/\S+\s*|\s+/g)||[])put({poem:false,text:token});continue}
-  // Prefer whole stanzas; oversized stanzas continue at a verse boundary.
-  const stanzas=part.text.match(/[^\n]*(?:\n(?![ \t]*\n)[^\n]*)*(?:\n[ \t]*\n+|$)/g)?.filter(Boolean)||[];
-  for(const stanza of stanzas){const piece={poem:true,text:stanza};if(fits(serialize(append(piece)))){current=append(piece);continue}
-   if(current.length)flush();
-   if(fits(serialize([piece]))){current=[piece];continue}
-   for(const line of stanza.match(/[^\n]*\n|[^\n]+$/g)||[])put({poem:true,text:line});
-  }
+  for(const token of part.text.match(/\S+\s*|\s+/g)||[])put({poem:part.poem,text:token});
  }
  if(current.length||!pages.length)pages.push(serialize(current));return pages;
 }
