@@ -89,3 +89,11 @@ body.touch-reader .reading-tools button{min-height:44px;min-width:44px;padding:8
 .release-buttons button:disabled{opacity:.55;cursor:default}
 
 .publication-preview #contents{opacity:.45;cursor:default}
+
+/* Poetry shares the article typeface and preserves only the marked verses. */
+.article-prose .poem{font:inherit;line-height:inherit;text-align:left;text-align-last:left;white-space:pre-wrap;overflow-wrap:anywhere;margin:0 0 .65em;break-inside:avoid}
+.article-prose .poem:last-child{margin-bottom:0}
+.poetry-tools{display:flex;flex-wrap:wrap;gap:8px;margin:8px 0 14px;align-items:center;font:12px/1.5 Arial;letter-spacing:normal;text-transform:none}
+.poetry-tools button{border:1px solid #b9a59e;border-radius:5px;padding:7px 11px;background:var(--paper);font:13px Arial;letter-spacing:normal;text-transform:none}
+.poetry-tools button:first-child{color:var(--wine);font-weight:bold}
+.poetry-help{display:block;flex-basis:100%;color:var(--muted);font-weight:normal}

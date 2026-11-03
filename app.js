@@ -7,7 +7,7 @@ let draftPreview=false;
 let editions=window.EDITIONS, edition, flip, pages=[], starts=[], newsStart=-1, newsIndex=[], readerArticles=[], audioArticles=[], themeArticles=[], contentsEntries=[], readingPage=0,fontSize=21,pageObserver;
 try{if(new URLSearchParams(location.search).has('rascunho')&&!new URLSearchParams(location.search).has('preview')){const draft=JSON.parse(sessionStorage.getItem('pi-draft'));if(draft&&Array.isArray(draft.articles)){editions=[draft];draftPreview=true}}}catch{}
 const panel=$('#panel');const openPanel=html=>{$('#panelContent').innerHTML=html;panel.showModal()};$('.close').onclick=()=>panel.close();
-function prose(text){return String(text??'').split(/\r\n|\r|\n/).filter(p=>p.trim()).map(p=>'<p>'+esc(p)+'</p>').join('')}
+function prose(text){return window.RevistaPoetry.render(text)}
 const textStyles=document.createElement('style');textStyles.textContent='.page.poster-page{border:0}.poster-page .page-inner{padding:0}.text-page .page-inner{padding:28px 34px 24px}.text-page .eyebrow{margin-bottom:14px;flex-shrink:0}.text-page h2{margin-bottom:16px;flex-shrink:0}.text-page .text-block{max-height:none;overflow:visible;white-space:normal;flex-shrink:0}.text-block.article-prose p,.article-prose p{font:inherit;line-height:inherit;margin:0 0 .65em;text-align:justify;text-align-last:auto;white-space:normal}.article-prose p:last-child{margin-bottom:0}.text-page .listen,.text-page .note{flex-shrink:0}.text-page .folio{margin-top:auto}';document.head.append(textStyles);
 function articleCredits(a){return '<div class="article-credits" style="font:11px/1.5 Arial;white-space:normal;margin-top:12px;flex-shrink:0">'+[['Título do livro',a.title],['Autor',a.author],['Editora',a.publisher],['Voz do episódio',a.voice],['Rubrica',a.section],['Autor do texto',a.textAuthor]].filter(([,v])=>String(v??'').trim()).map(([label,value])=>'<div><strong>'+label+':</strong> '+esc(value)+'</div>').join('')+'</div>'}
 function textPageHeading(article,continuation=false){return '<div class="eyebrow">'+esc(article.section||'LEITURAS')+(continuation?' · CONTINUAÇÃO':'')+'</div>'+(!continuation?'<h2>'+esc(article.title)+'</h2>':'')}
@@ -16,9 +16,7 @@ const host=document.createElement('div');host.className='page text-page';host.st
 host.innerHTML='<div class="page-inner">'+textPageHeading(article)+'<div class="text-block article-prose"></div><div class="folio"><span>PRAZERES INTERROMPIDOS</span><span>00</span></div></div>';document.body.append(host);
 const inner=host.firstElementChild,block=host.querySelector('.text-block'),folio=host.querySelector('.folio');
 const pageSpace=()=>640-parseFloat(getComputedStyle(inner).paddingBottom)-folio.offsetHeight-block.offsetTop;let available=pageSpace();
-const tokens=String(text??'').match(/\S+\s*|\s+/g)||[''],chunks=[];let chunk='';
-for(const token of tokens){block.innerHTML=prose(chunk+token);if(block.offsetHeight>available&&chunk){chunks.push(chunk);chunk=token;if(chunks.length===1){host.querySelector('h2').remove();host.querySelector('.eyebrow').textContent=(article.section||'LEITURAS')+' · CONTINUAÇÃO';available=pageSpace()}}else chunk+=token}
-if(chunk||!chunks.length)chunks.push(chunk);
+const chunks=window.RevistaPoetry.paginate(text,candidate=>{block.innerHTML=prose(candidate);return block.offsetHeight<=available},()=>{if(host.querySelector('h2'))host.querySelector('h2').remove();host.querySelector('.eyebrow').textContent=(article.section||'LEITURAS')+' · CONTINUAÇÃO';available=pageSpace()});
 // Keep every text page filled. Move the closing credits, never the text,
 // when the credits cannot fit below the final paragraph.
 const creditMeasure=document.createElement('div');creditMeasure.innerHTML=article.isNews?'':articleCredits(article);inner.append(creditMeasure);const closingHeight=creditMeasure.offsetHeight+(article.isNews?40:72);creditMeasure.remove();
