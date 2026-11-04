@@ -52,7 +52,17 @@ function paginateContents(entries){
 function contentsEntry(entry){const section=entry.kind!=='item';return '<button class="index-item '+(section?'index-section':'index-subitem')+'" data-page="'+entry.start+'"><span>'+(section?'<strong>'+esc(entry.title)+'</strong>':esc(entry.title))+(entry.subtitle?'<small>'+esc(entry.subtitle)+'</small>':'')+'</span><span>'+(entry.start+1)+'</span></button>'}
 function episodePlayer(a,i,cls=''){return window.RevistaAudio?window.RevistaAudio.markup(a,i,cls):'<a class="listen" data-pdf-audio="true" href="'+esc(safeURL(a.audio))+'" target="_blank" rel="noopener">▶ Ouvir o episódio</a>'}
 function page(content,cls='',article=null,text=null){pages.push({content,cls,article,text});}
-function sectionDivider(title){page('<div class="eyebrow">PRAZERES INTERROMPIDOS</div><div style="flex:1;display:flex;flex-direction:column;justify-content:center"><div style="width:64px;border-top:1px solid #d0af83;margin-bottom:30px"></div><h2 style="font:48px/1.08 Georgia;letter-spacing:-1px;margin:0 0 28px">'+esc(title).replace(/\n/g,'<br>')+'</h2></div>','cover section-divider')}
+const editionColorStyle=document.createElement('style');
+document.head.append(editionColorStyle);
+let editionColorReady=Promise.resolve(),editionColorRevision=0;
+function updateEditionColor(edition){
+  const revision=++editionColorRevision;
+  editionColorStyle.textContent='';
+  editionColorReady=RevistaEditionColor.resolve(edition).then(theme=>{
+    if(revision===editionColorRevision)editionColorStyle.textContent=RevistaEditionColor.css(theme);
+  });
+}
+function sectionDivider(title){page('<div class="eyebrow">PRAZERES INTERROMPIDOS</div><div style="flex:1;display:flex;flex-direction:column;justify-content:center"><div style="width:64px;border-top:1px solid var(--section-rule,#d0af83);margin-bottom:30px"></div><h2 style="font:48px/1.08 Georgia;letter-spacing:-1px;margin:0 0 28px">'+esc(title).replace(/\n/g,'<br>')+'</h2></div>','cover section-divider')}
 function showPublicationPreview(){
  window.RevistaAudio?.pause?.();window.RevistaAudio?.setArticles([]);window.RevistaTheme?.start([],[]);if(pageObserver)pageObserver.disconnect();if(flip){flip.destroy();flip=null}
  document.body.classList.add('publication-preview');$('#contents').disabled=true;$('#bookWrap').classList.remove('first-cover','last-cover');
@@ -90,7 +100,7 @@ async function openPublishedEdition(id,entries,resetPage=false){
     return false;
   }finally{editionLoadBusy=false}
 }
-function loadEdition(id){window.RevistaTrailers?.stop();edition=editions.find(e=>e.id===id)||editions.find(e=>draftPreview||RevistaPublication.isVisible(e))||editions[0];pages=[];starts=[];newsStart=-1;newsIndex=[];contentsEntries=[];readerArticles=[...(edition.articles||[]),...(edition.extraArticles||[])];$('#editionLabel').textContent=`N.º ${edition.number} · ${edition.month}`;$('.demo').textContent=edition.demo?'EDIÇÃO EXPERIMENTAL':'EDIÇÃO MENSAL';
+function loadEdition(id){window.RevistaTrailers?.stop();edition=editions.find(e=>e.id===id)||editions.find(e=>draftPreview||RevistaPublication.isVisible(e))||editions[0];updateEditionColor(edition);pages=[];starts=[];newsStart=-1;newsIndex=[];contentsEntries=[];readerArticles=[...(edition.articles||[]),...(edition.extraArticles||[])];$('#editionLabel').textContent=`N.º ${edition.number} · ${edition.month}`;$('.demo').textContent=edition.demo?'EDIÇÃO EXPERIMENTAL':'EDIÇÃO MENSAL';
 if(!draftPreview&&!RevistaPublication.isReadable(edition)){showPublicationPreview();return}document.body.classList.remove('publication-preview');$('#contents').disabled=false;
 if(edition.cover)page(`<img src="${esc(safeImage(edition.cover))}" alt="Capa da revista — N.º ${esc(edition.number)} · ${esc(edition.month)}" style="position:absolute;inset:0;width:100%;height:100%;object-fit:contain;background:var(--paper)">`,'uploaded-cover');else page(`<div class="eyebrow"><span>REVISTA DO PODCAST</span><span>N.º ${esc(edition.number)} · ${esc(edition.month)}</span></div><h1 class="masthead">Prazeres<br>Interrompidos</h1><div class="cover-sub">Leituras que ficam.</div><div class="cover-art">${edition.cover?`<img class="cover-image" src="${esc(safeImage(edition.cover))}" alt="Capa da edição">`:'<span>pi</span>'}</div><h2>${esc(edition.headline)}</h2><p>${edition.demo?'Um ensaio de leitura.<br>Textos e capas demonstrativos.':'Uma edição do Projeto Internacional de Promoção<br>da Leitura, dos Livros e dos Escritores.'}</p>`,'cover');
 const opening=Object.fromEntries(Object.entries(openingDefaults(edition)).map(([k,v])=>[k,k==='openingLabel'&&['ABERTURA · EDITORIAL','ABERTURA · NÚMERO EXPERIMENTAL'].includes(edition[k])?'ABERTURA':edition[k]??v]));const openingPart=(key,tag,cls='')=>opening[key]?`<${tag}${cls?` class="${cls}"`:''}>${esc(opening[key]).replace(/\r\n|\r|\n/g,'<br>')}</${tag}>`:'';
@@ -120,7 +130,7 @@ if(publishedTrailers.length){trailerStart=pages.length;contentsEntries.push({kin
 });}
 
 const publishedNews=(edition.news||[]).filter(n=>n.image||(n.hasText!==false&&n.text?.trim()));
-if(publishedNews.length){newsStart=pages.length;page('<div class="eyebrow">PRAZERES INTERROMPIDOS</div><div style="flex:1;display:flex;flex-direction:column;justify-content:center"><div style="width:64px;border-top:1px solid #d0af83;margin-bottom:30px"></div><h2 style="font:48px/1.08 Georgia;letter-spacing:-1px;margin:0 0 28px">Novidades<br>do Projeto</h2><p style="font:19px/1.6 Georgia;max-width:290px">O que há de novo no<br>Prazeres Interrompidos.</p></div>','cover news-transition');publishedNews.forEach(n=>{
+if(publishedNews.length){newsStart=pages.length;page('<div class="eyebrow">PRAZERES INTERROMPIDOS</div><div style="flex:1;display:flex;flex-direction:column;justify-content:center"><div style="width:64px;border-top:1px solid var(--section-rule,#d0af83);margin-bottom:30px"></div><h2 style="font:48px/1.08 Georgia;letter-spacing:-1px;margin:0 0 28px">Novidades<br>do Projeto</h2><p style="font:19px/1.6 Georgia;max-width:290px">O que há de novo no<br>Prazeres Interrompidos.</p></div>','cover news-transition');publishedNews.forEach(n=>{
 const link=n.url&&safeURL(n.url)?'<a data-pdf-news="true" class="listen" href="'+esc(safeURL(n.url))+'" target="_blank" rel="noopener">Mais informações ↗</a>':'';
 const newsFirstPage=pages.length;newsIndex.push({kind:'item',title:n.title,subtitle:'',start:newsFirstPage});if(n.image)page((link?'<a data-pdf-news="true" href="'+esc(safeURL(n.url))+'" target="_blank" rel="noopener" style="position:absolute;inset:0">':'')+'<img src="'+esc(safeImage(n.image))+'" alt="'+esc(n.title)+'" style="position:absolute;inset:0;width:100%;height:100%;object-fit:fill">'+(link?'</a>':''),'poster-page');
 const first=pages.length;
@@ -129,7 +139,7 @@ for(let j=newsFirstPage;j<pages.length;j++)pages[j].news=n;
 });}
 
 if(pages.length%2===0)page(`<div class="eyebrow">FIM DAS LEITURAS</div><h2>Até à próxima<br>edição.</h2><p>A leitura continua no próximo número.</p>`);
-if(edition.backCover)page(`<img src="${esc(safeImage(edition.backCover))}" alt="Contracapa da revista" style="position:absolute;inset:0;width:100%;height:100%;object-fit:contain;background:var(--paper)">`,'uploaded-back-cover');else page(`<div class="eyebrow">PRAZERES INTERROMPIDOS</div><div class="cover-art"><span>pi</span></div><h2>O prazer<br>de continuar<br>a ler.</h2><p>Projeto Internacional de Promoção da Leitura,<br>dos Livros e dos Escritores</p><p>Publicação mensal · ${esc(edition.month)}</p><p>${edition.demo?'Edição experimental<br>Conteúdos exclusivamente demonstrativos.':''}</p><a href="https://www.prazeresinterrompidos.pt" target="_blank" rel="noopener" style="font-size:11px">www.prazeresinterrompidos.pt ↗</a>`,'cover');
+if(edition.backCover)page(`<img src="${esc(safeImage(edition.backCover))}" alt="Contracapa da revista" style="position:absolute;inset:0;width:100%;height:100%;object-fit:contain;background:var(--paper)">`,'uploaded-back-cover');else page(`<div class="eyebrow">PRAZERES INTERROMPIDOS</div><div class="cover-art"><span>pi</span></div><h2>O prazer<br>de continuar<br>a ler.</h2><p>Projeto Internacional de Promoção da Leitura,<br>dos Livros e dos Escritores</p><p>Publicação mensal · ${esc(edition.month)}</p><p>${edition.demo?'Edição experimental<br>Conteúdos exclusivamente demonstrativos.':''}</p><a href="https://www.prazeresinterrompidos.pt" target="_blank" rel="noopener" style="font-size:11px">www.prazeresinterrompidos.pt ↗</a>`,'cover generated-back-cover');
 const indexEntries=contentsEntries;if(newsStart>=0)indexEntries.push({kind:'section',title:'Novidades do Projeto',subtitle:'',start:newsStart});indexEntries.push(...newsIndex);
 const indexSheets=paginateContents(indexEntries);
 for(let toc=0;toc<tocCount;toc++)pages[tocStart+toc].content='<div class="eyebrow">NESTA EDIÇÃO</div>'+(toc===0?'<h2>Índice.</h2>':'')+indexSheets[toc].map(contentsEntry).join('');
@@ -189,10 +199,10 @@ let pdfFrame;
 $('#downloadPDF').onclick=async()=>{
  const button=$('#downloadPDF'),notice=$('#exportState');button.disabled=true;notice.textContent='A preparar as páginas…';
  try{
- await window.RevistaTheme?.ready();
+ await Promise.all([window.RevistaTheme?.ready(),editionColorReady]);
  if(pdfFrame)pdfFrame.remove();pdfFrame=document.createElement('iframe');pdfFrame.title='Edição preparada para guardar em PDF';pdfFrame.style.cssText='position:fixed;left:-10000px;top:0;width:460px;height:640px;border:0';document.body.append(pdfFrame);
  const doc=pdfFrame.contentDocument;
- const styles=Array.from(document.querySelectorAll('link[rel="stylesheet"]')).map(l=>'<link rel="stylesheet" href="'+esc(l.href)+'">').join('')+'<style>'+textStyles.textContent+(window.RevistaTheme?.css()||'')+'</style>';
+ const styles=Array.from(document.querySelectorAll('link[rel="stylesheet"]')).map(l=>'<link rel="stylesheet" href="'+esc(l.href)+'">').join('')+'<style>'+textStyles.textContent+editionColorStyle.textContent+(window.RevistaTheme?.css()||'')+'</style>';
  const content=pages.map((p,i)=>'<section id="pdf-page-'+(i+1)+'" class="page '+esc(p.cls+(p.themeClass?' '+p.themeClass:''))+'"><div class="page-inner">'+p.content+((p.cls==='uploaded-cover'||p.cls==='uploaded-back-cover'||p.cls==='poster-page')?'':'<div class="folio"><span>'+(edition.demo?'EDIÇÃO EXPERIMENTAL':'PRAZERES INTERROMPIDOS')+'</span><span>'+String(i+1).padStart(2,'0')+'</span></div>')+'</div></section>').join('');
  doc.open();doc.write('<!doctype html><html lang="pt-PT"><head><meta charset="utf-8"><title>Prazeres Interrompidos - '+esc(edition.month)+' - N.º '+esc(edition.number)+'</title>'+styles+'<style>@page{size:460px 640px;margin:0}html,body{margin:0;padding:0;width:460px;background:white}*{-webkit-print-color-adjust:exact;print-color-adjust:exact}.page{position:relative!important;display:block!important;width:460px!important;height:640px!important;margin:0!important;break-after:page;page-break-after:always;break-inside:avoid;border:0;box-shadow:none!important;overflow:hidden}.page:last-child{break-after:auto;page-break-after:auto}.page-inner{position:relative!important;width:460px!important;height:640px!important;transform:none!important}.index-item{color:inherit}.listen{text-decoration:none}a{color:inherit;text-decoration:none}</style></head><body>'+content+'</body></html>');doc.close();
  // Keep audio and index destinations clickable in the PDF.
