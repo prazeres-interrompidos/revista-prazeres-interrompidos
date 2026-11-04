@@ -4,7 +4,7 @@ const $=s=>document.querySelector(s), esc=s=>String(s??'').replace(/[&<>"']/g,c=
 const safeURL=s=>{try{const u=new URL(s,location.href);return ['http:','https:','file:'].includes(u.protocol)?u.href:''}catch{return ''}};
 const safeImage=s=>/^data:image\/(png|jpeg|webp|gif);base64,/.test(s||'')?s:safeURL(s);
 let draftPreview=false;
-let editions=window.EDITIONS, edition, flip, pages=[], starts=[], newsStart=-1, newsIndex=[], readerArticles=[], audioArticles=[], themeArticles=[], contentsEntries=[], readingPage=0,fontSize=21,pageObserver;
+let editions=window.EDITIONS||[], edition, flip, pages=[], starts=[], newsStart=-1, newsIndex=[], readerArticles=[], audioArticles=[], themeArticles=[], contentsEntries=[], readingPage=0,fontSize=21,pageObserver;
 try{if(new URLSearchParams(location.search).has('rascunho')&&!new URLSearchParams(location.search).has('preview')){const draft=JSON.parse(sessionStorage.getItem('pi-draft'));if(draft&&Array.isArray(draft.articles)){editions=[draft];draftPreview=true}}}catch{}
 const panel=$('#panel');const openPanel=html=>{$('#panelContent').innerHTML=html;panel.showModal()};$('.close').onclick=()=>panel.close();
 function prose(text){return window.RevistaPoetry.render(text)}
@@ -59,6 +59,36 @@ function showPublicationPreview(){
  const visible=RevistaPublication.isVisible(edition),cover=visible?safeImage(edition.cover):'';
  $('#bookWrap').innerHTML='<div id="book"><article class="publication-cover-preview">'+(cover?'<img src="'+esc(cover)+'" alt="Capa da Revista do Podcast — '+esc(edition.month)+'">':'')+'<p class="release-badge">'+(visible?'EM BREVE':'EM PREPARAÇÃO')+'</p><h1>'+esc(edition.month)+'</h1><p>'+(visible?'A capa já está disponível. A leitura completa chega com o lançamento da revista.':'Estamos a preparar uma nova edição da Revista do Podcast.')+'</p><a href="edicoes.html">Ver as edições da revista ↗</a></article></div>';
  $('.demo').textContent=visible?'CAPA DISPONÍVEL · EM BREVE':'EM PREPARAÇÃO';history.replaceState(null,'','#edicao='+encodeURIComponent(edition.id)+'&pagina=1');
+}
+let loadedRevision='',editionLoadBusy=false;
+async function openPublishedEdition(id,entries,resetPage=false){
+  if(editionLoadBusy)return false;
+  editionLoadBusy=true;
+  try{
+    const catalog=entries||await RevistaEditions.catalog();
+    const selected=catalog.find(entry=>entry.id===id)||catalog[0];
+    if(!selected){
+      if(flip){flip.destroy();flip=null}
+      editions=[];
+      edition=null;
+      pages=[];
+      $('#contents').disabled=true;
+      $('#hint').textContent='Não existem edições disponíveis.';
+      return false;
+    }
+    if(selected.reader){location.assign(RevistaEditions.readerURL(selected));return false}
+    const content=selected.released?await RevistaEditions.readEdition(selected):{
+      ...selected,cover:selected.cover?new URL(selected.cover,RevistaEditions.base).href:''
+    };
+    if(resetPage)history.replaceState(null,'','#'+new URLSearchParams({edicao:selected.id,pagina:'1'}));
+    editions=catalog.map(entry=>entry.id===selected.id?content:entry);
+    loadEdition(selected.id);
+    loadedRevision=selected.revision;
+    return true;
+  }catch{
+    $('#hint').textContent='Não foi possível carregar a edição. Tente voltar a abrir a revista.';
+    return false;
+  }finally{editionLoadBusy=false}
 }
 function loadEdition(id){window.RevistaTrailers?.stop();edition=editions.find(e=>e.id===id)||editions.find(e=>draftPreview||RevistaPublication.isVisible(e))||editions[0];pages=[];starts=[];newsStart=-1;newsIndex=[];contentsEntries=[];readerArticles=[...(edition.articles||[]),...(edition.extraArticles||[])];$('#editionLabel').textContent=`N.º ${edition.number} · ${edition.month}`;$('.demo').textContent=edition.demo?'EDIÇÃO EXPERIMENTAL':'EDIÇÃO MENSAL';
 if(!draftPreview&&!RevistaPublication.isReadable(edition)){showPublicationPreview();return}document.body.classList.remove('publication-preview');$('#contents').disabled=false;
@@ -127,7 +157,7 @@ function go(i){if(!flip)return;flip.turnToPage(Math.max(0,Math.min(pages.length-
 document.querySelectorAll('.prev').forEach(b=>b.onclick=()=>flip.flipPrev());document.querySelectorAll('.next').forEach(b=>b.onclick=()=>flip.flipNext());$('#pageNumber').onchange=e=>go(Number(e.target.value)-1);
 document.addEventListener('click',e=>{const b=e.target.closest('[data-page]');if(b)go(Number(b.dataset.page));const a=e.target.closest('[data-audio]');if(a)openAudio(audioArticles[Number(a.dataset.audio)])});
 $('#contents').onclick=()=>openPanel('<h2>Índice da edição</h2><button class="index-item" data-page="0">Capa <span>1</span></button>'+contentsEntries.map(contentsEntry).join(''));
-$('#archive').onclick=()=>{openPanel(`<div class="eyebrow">PUBLICAÇÃO MENSAL</div><h2>Arquivo de edições</h2>${editions.filter(e=>draftPreview||RevistaPublication.isVisible(e)).map(e=>`<button class="archive-card" data-edition="${esc(e.id)}">${esc(e.month)}<small>N.º ${esc(e.number)} · ${e.released===true||draftPreview?'Revista do Podcast':'Capa disponível · Em breve'}</small></button>`).join('')}<p>As edições publicadas permanecem disponíveis neste arquivo.</p>`);panel.querySelectorAll('[data-edition]').forEach(b=>b.onclick=()=>{history.replaceState(null,'',location.pathname+location.search);loadEdition(b.dataset.edition);panel.close()})};
+$('#archive').onclick=()=>{openPanel(`<div class="eyebrow">PUBLICAÇÃO MENSAL</div><h2>Arquivo de edições</h2>${editions.filter(e=>draftPreview||RevistaPublication.isVisible(e)).map(e=>`<button class="archive-card" data-edition="${esc(e.id)}">${esc(e.month)}<small>N.º ${esc(e.number)} · ${e.released===true||draftPreview?'Revista do Podcast':'Capa disponível · Em breve'}</small></button>`).join('')}<p>As edições publicadas permanecem disponíveis neste arquivo.</p>`);panel.querySelectorAll('[data-edition]').forEach(b=>b.onclick=()=>{panel.close();if(draftPreview)loadEdition(b.dataset.edition);else void openPublishedEdition(b.dataset.edition,undefined,true)})};
 function openAudio(a){const url=safeURL(a.audio);if(!url)return;openPanel('<h2>'+esc(a.title)+'</h2><p>Voz: '+esc(a.voice)+'</p>'+episodePlayer(a,audioArticles.indexOf(a)));window.RevistaAudio?.prepare(panel)}
 function showReading(){window.RevistaTrailers?.stop();const p=pages[readingPage];window.RevistaTheme?.reading($('#readingContent'),p.article,themeArticles);if(p.trailer){const t=p.trailer;$('#readingContent').innerHTML='<div class="episode-decoration" aria-hidden="true"><span class="episode-motif-base"></span></div><h2>'+esc(t.title||'Book Trailer')+'</h2><p class="trailer-book-meta">'+[t.author,t.publisher].filter(Boolean).map(esc).join(' · ')+'</p>'+window.RevistaTrailers.markup(t);$('#readingContent').style.fontSize=fontSize+'px';window.RevistaAudio?.prepare($('#readingContent'));return}if(p.news){const n=p.news;$('#readingContent').innerHTML='<h2>'+esc(n.title)+'</h2>'+(n.image?'<img src="'+esc(safeImage(n.image))+'" alt="'+esc(n.title)+'" style="display:block;width:100%;height:auto;max-height:none">':'')+(n.hasText!==false?'<div class="article-prose">'+prose(n.text)+'</div>':'')+(n.url?'<a class="listen" href="'+esc(safeURL(n.url))+'" target="_blank" rel="noopener">Mais informações ↗</a>':'');$('#readingContent').style.fontSize=fontSize+'px';return}$('#readingContent').innerHTML=`<div style="font:11px Arial">PÁGINA ${readingPage+1} / ${pages.length}</div>`+(p.article?`${p.article.imageType==='poster'&&p.article.cover?`<img src="${esc(safeImage(p.article.cover))}" alt="Cartaz do episódio — ${esc(p.article.title)}" style="display:block;width:100%;height:auto;max-height:none">`:''}<h2>${esc(p.article.title)}</h2><div style="font:13px/1.6 Arial">${esc(p.article.author)} · ${esc(p.article.publisher)}<br>Voz: ${esc(p.article.voice)}</div>${p.article.hasText!==false?`<div class="article-prose">${prose(p.article.text)}</div>${articleCredits(p.article)}`:''}${p.article.audio?episodePlayer(p.article,audioArticles.indexOf(p.article)):''}`:p.content);if(p.cls==='uploaded-cover'||p.cls==='uploaded-back-cover')$('#readingContent').innerHTML=`<img src="${esc(safeImage(p.cls==='uploaded-back-cover'?edition.backCover:edition.cover))}" alt="${p.cls==='uploaded-back-cover'?'Contracapa':'Capa'} da revista" style="display:block;width:100%;max-height:none;height:auto">`;$('#readingContent').style.fontSize=fontSize+'px';window.RevistaAudio?.prepare($('#readingContent'))}
 $('#zoom').onclick=()=>{readingPage=flip.getCurrentPageIndex();showReading();$('#reading').showModal()};$('#closeReading').onclick=()=>$('#reading').close();$('#reading').addEventListener('close',()=>window.RevistaTrailers?.stop());$('#larger').onclick=()=>{fontSize=Math.min(36,fontSize+2);showReading()};$('#smaller').onclick=()=>{fontSize=Math.max(16,fontSize-2);showReading()};$('#readingPrev').onclick=()=>{readingPage=Math.max(0,readingPage-1);showReading()};$('#readingNext').onclick=()=>{readingPage=Math.min(pages.length-1,readingPage+1);showReading()};$('#reading').addEventListener('close',()=>go(readingPage));
@@ -135,7 +165,7 @@ function immersive(on){document.body.classList.toggle('immersive',on);$('#fullsc
 $('#fullscreen').onclick=async()=>{if(document.fullscreenElement){await document.exitFullscreen();immersive(false);return}if(document.body.classList.contains('immersive')){immersive(false);return}try{if(document.documentElement.requestFullscreen)await document.documentElement.requestFullscreen();immersive(true)}catch{immersive(true)}};
 document.addEventListener('fullscreenchange',()=>{if(!document.fullscreenElement)immersive(false)});document.addEventListener('keydown',e=>{if(e.key==='Escape')immersive(false)});
 document.addEventListener('keydown',e=>{if(!flip||e.target.matches('input,textarea')||panel.open||$('#reading').open)return;if(e.key==='ArrowRight')flip.flipNext();if(e.key==='ArrowLeft')flip.flipPrev()});
-if(new URLSearchParams(location.search).get('preview')==='embedded'&&window.parent!==window){window.addEventListener('message',e=>{if(e.origin!==location.origin||e.source!==window.parent||e.data?.type!=='pi-preview-edition')return;const draft=e.data.edition;if(!draft||!Array.isArray(draft.articles))return;draftPreview=true;editions=[draft];loadEdition(draft.id)});window.parent.postMessage({type:'pi-preview-ready'},location.origin);}else if(!editions?.length)document.body.textContent='Não existem edições disponíveis.';else loadEdition(new URLSearchParams(location.hash.slice(1)).get('edicao'));
+if(new URLSearchParams(location.search).get('preview')==='embedded'&&window.parent!==window){window.addEventListener('message',e=>{if(e.origin!==location.origin||e.source!==window.parent||e.data?.type!=='pi-preview-edition')return;const draft=e.data.edition;if(!draft||!Array.isArray(draft.articles))return;draftPreview=true;editions=[draft];loadEdition(draft.id)});window.parent.postMessage({type:'pi-preview-ready'},location.origin);}else if(draftPreview)loadEdition(editions[0].id);else void openPublishedEdition(new URLSearchParams(location.hash.slice(1)).get('edicao'));
 
 
 // Partilha da página atual e versão PDF com a mesma paginação do leitor.

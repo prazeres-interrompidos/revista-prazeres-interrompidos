@@ -1,0 +1,16 @@
+{
+  "version": 1,
+  "editions": [
+    {
+      "id": "2026-10",
+      "number": "00",
+      "month": "outubro 2026",
+      "headline": "O prazer de ler!!!",
+      "released": true,
+      "coverReleased": true,
+      "cover": "covers/323032362d3130.svg?v=a194deac208eba07bcece38a2ee524b2ed86b62b",
+      "file": "editions/323032362d3130.js",
+      "revision": "f2d680978471f0c4ee71e2abdca8e568526e1c9a"
+    }
+  ]
+}
