@@ -97,3 +97,10 @@ body.touch-reader .reading-tools button{min-height:44px;min-width:44px;padding:8
 .poetry-tools button{border:1px solid #b9a59e;border-radius:5px;padding:7px 11px;background:var(--paper);font:13px Arial;letter-spacing:normal;text-transform:none}
 .poetry-tools button:first-child{color:var(--wine);font-weight:bold}
 .poetry-help{display:block;flex-basis:100%;color:var(--muted);font-weight:normal}
+
+/* Moldura de telemóvel apenas para os vídeos OneDrive. */
+.trailer-card[data-video-provider="onedrive"]{position:relative;padding:18px 7px 13px;border:2px solid var(--wine);border-radius:30px;box-shadow:0 12px 28px #29252226}
+.trailer-card[data-video-provider="onedrive"]::before,.trailer-card[data-video-provider="onedrive"]::after{content:"";position:absolute;left:50%;transform:translateX(-50%);height:3px;border-radius:4px;background:var(--wine);opacity:.6;pointer-events:none}
+.trailer-card[data-video-provider="onedrive"]::before{top:6px;width:30px}
+.trailer-card[data-video-provider="onedrive"]::after{bottom:4px;width:42px}
+.trailer-card[data-video-provider="onedrive"] .trailer-stage{border-radius:20px}
