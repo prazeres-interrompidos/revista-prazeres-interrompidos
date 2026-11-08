@@ -112,3 +112,9 @@ body.touch-reader .reading-tools button{min-height:44px;min-width:44px;padding:8
 .trailer-card[data-video-provider="onedrive"]::before{top:6px;width:30px}
 .trailer-card[data-video-provider="onedrive"]::after{bottom:4px;width:42px}
 .trailer-card[data-video-provider="onedrive"] .trailer-stage{border-radius:20px}
+
+/* Os controlos nativos pertencem ao vídeo, incluindo no ecrã completo. */
+.trailer-stage .trailer-video{position:absolute;inset:0;display:block;width:100%;height:100%;max-height:none;object-fit:contain;background:#111;border:0;border-radius:inherit;touch-action:manipulation}
+.trailer-video:fullscreen{object-fit:contain;border-radius:0}
+
+.trailer-expanded{position:fixed;inset:0;width:100vw;max-width:none;height:100dvh;max-height:none;margin:0;padding:0;border:0;background:#111;color:#fff;overflow:hidden}.trailer-expanded::backdrop{background:#111}.trailer-expanded video{display:block;width:100%;height:100%;object-fit:contain}.trailer-expanded-close{position:absolute;right:16px;top:16px;width:44px;height:44px;padding:0;border:1px solid #ffffff80;border-radius:50%;background:#111a;color:#fff;font:30px Arial;cursor:pointer;z-index:1}
