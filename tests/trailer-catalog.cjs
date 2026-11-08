@@ -6,10 +6,10 @@ const origin = 'https://book-trailers-prazeres-interrompidos.oct-nuno.chatgpt.si
 const film = (id, title, author, subtitle = '') => ({id,title,author,subtitle,kind:'film',sourceFile:title+', '+author+'.mp4',url:origin+'/media/'+id+'.mp4',poster:origin+'/media/'+id+'.jpg',pageUrl:origin+'/livro/'+id});
 function client(items) {
   let calls = 0, fail = false;
-  const context = {window:{},URL,AbortController,setTimeout,clearTimeout,MutationObserver:class {observe(){}},location:{href:'https://prazeres-interrompidos.github.io/revista-prazeres-interrompidos/'},document:{documentElement:{},querySelectorAll:()=>[],addEventListener(){}},fetch:async()=>{calls++;return {ok:!fail,json:async()=>({version:1,items})}}};
+  const context = {window:{},URL,AbortController,setTimeout,clearTimeout,matchMedia:()=>({matches:false,addEventListener(){}}),MutationObserver:class {observe(){}},location:{href:'https://prazeres-interrompidos.github.io/revista-prazeres-interrompidos/'},document:{documentElement:{},querySelectorAll:()=>[],addEventListener(){}},fetch:async()=>{calls++;return {ok:!fail,json:async()=>({version:1,items})}}};
   vm.createContext(context);
-  for (const file of ['trailer-catalog.js','book-trailers.js']) vm.runInContext(fs.readFileSync(require.resolve('../'+file),'utf8'),context);
-  return {catalog:context.window.RevistaFilmCatalog,player:context.window.RevistaTrailers,calls:()=>calls,fail:()=>{fail=true}};
+  for (const file of ['trailer-catalog.js','book-trailers.js','book-gifs.js']) vm.runInContext(fs.readFileSync(require.resolve('../'+file),'utf8'),context);
+  return {catalog:context.window.RevistaFilmCatalog,player:context.window.RevistaTrailers,gifs:context.window.RevistaGIFs,calls:()=>calls,fail:()=>{fail=true}};
 }
 test('Título e autor coincidem apesar de acentos, maiúsculas e pontuação',async()=>{
   const c=client([film('ines','O Novo Mundo da Inês','Sara de Almeida Leite','Mais Tolerância, Por Favor!')]);await c.catalog.load();
@@ -27,6 +27,22 @@ test('Volumes e vídeos duplicados exigem uma correspondência ou escolha explí
 test('Um GIF não é escolhido como filme',async()=>{
   const gif=film('gif','Livro','Autora');gif.kind='gif';gif.url=origin+'/media/gif.gif';
   const c=client([gif]);await c.catalog.load();assert.equal(c.catalog.match({title:'Livro',author:'Autora'}).status,'missing');
+});
+test('O mesmo livro pode ter filme e GIF, com escolhas independentes por formato',async()=>{
+  const gif={...film('animacao','Livro','Autora'),kind:'gif',url:origin+'/media/animacao.gif'};
+  const other={...gif,id:'animacao-2',url:origin+'/media/animacao-2.gif',poster:origin+'/media/animacao-2.jpg',pageUrl:origin+'/livro/animacao-2'};
+  const c=client([film('filme','Livro','Autora'),gif,other]);await c.catalog.load();
+  assert.equal(c.catalog.match({title:'Livro',author:'Autora',gifId:'animacao'}).item.id,'filme');
+  assert.equal(c.catalog.match({title:'Livro',author:'Autora',filmId:'filme'},'gif').status,'ambiguous');
+  assert.equal(c.catalog.match({title:'Livro',author:'Autora',gifId:'animacao-2'},'gif').item.id,'animacao-2');
+  assert.equal(c.catalog.match({title:'Livro',author:'Outra',gifId:'animacao'},'gif').status,'missing');
+});
+test('O leitor de GIF usa a animação e a capa partilhadas dentro da moldura',async()=>{
+  const gif={...film('animacao','Livro','Autora'),kind:'gif',url:origin+'/media/animacao.gif'};
+  const c=client([gif]);await c.catalog.load();const html=c.gifs.markup({title:'Livro',author:'Autora'});
+  assert(html.includes('class="gif-frame"'));assert(html.includes('data-gif-source="'+gif.url+'"'));
+  assert(html.includes('src="'+gif.poster+'"'));assert(html.includes('data-gif-page="'+gif.pageUrl+'"'));
+  assert(html.includes('Ampliar GIF'));assert(html.includes('Animar GIF'));assert(!html.includes('trailer-phone'));
 });
 test('Rejeita destinos de ficheiros fora do alojamento partilhado e IDs duplicados',()=>{
   const c=client([]),item=film('livro','Livro','Autora');

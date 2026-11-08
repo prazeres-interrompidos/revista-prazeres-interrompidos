@@ -31,19 +31,19 @@ async function load(force=false){
    if(!response.ok)throw Error('Não foi possível consultar os filmes.');
    const data=await response.json(),next=validateCatalog(data);
    entries=next;updatedAt=String(data.updatedAt||'');lastError='';return entries;
-  }catch{lastError='Não foi possível consultar os filmes. Tente atualizar o catálogo.';return entries||[]}
-  finally{clearTimeout(timer);pending=null}
+  }catch{lastError='Não foi possível consultar a coleção. Tente atualizar o catálogo.';return entries||[]}
+  finally{clearTimeout(timer);pending=null;if(typeof root.dispatchEvent==='function')root.dispatchEvent(new Event('pi-media-catalog'))}
  })();
  return pending;
 }
-function match(trailer){
+function match(trailer,kind='film'){
  const title=normalize(trailer?.title),author=normalize(trailer?.author);
  if(!title||!author)return {status:'incomplete',candidates:[]};
  if(entries===null)return {status:pending?'loading':'unavailable',candidates:[]};
- const authors=entries.filter(item=>item.kind==='film'&&normalize(item.author)===author);
+ const authors=entries.filter(item=>item.kind===kind&&normalize(item.author)===author);
  let candidates=authors.filter(item=>normalize(item.fullTitle)===title);
  if(!candidates.length)candidates=authors.filter(item=>normalize(item.title)===title);
- const selected=candidates.find(item=>item.id===trailer.filmId);
+ const selected=candidates.find(item=>item.id===trailer[kind==='gif'?'gifId':'filmId']);
  if(selected)return {status:'matched',item:selected,candidates};
  if(candidates.length===1)return {status:'matched',item:candidates[0],candidates};
  return {status:candidates.length?'ambiguous':'missing',candidates};
