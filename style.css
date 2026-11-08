@@ -107,11 +107,14 @@ body.touch-reader .reading-tools button{min-height:44px;min-width:44px;padding:8
 .poetry-help{display:block;flex-basis:100%;color:var(--muted);font-weight:normal}
 
 /* Moldura de telemóvel apenas para os vídeos OneDrive. */
-.trailer-card[data-video-provider="onedrive"]{position:relative;padding:18px 7px 13px;border:2px solid var(--wine);border-radius:30px;box-shadow:0 12px 28px #29252226}
-.trailer-card[data-video-provider="onedrive"]::before,.trailer-card[data-video-provider="onedrive"]::after{content:"";position:absolute;left:50%;transform:translateX(-50%);height:3px;border-radius:4px;background:var(--wine);opacity:.6;pointer-events:none}
-.trailer-card[data-video-provider="onedrive"]::before{top:6px;width:30px}
-.trailer-card[data-video-provider="onedrive"]::after{bottom:4px;width:42px}
-.trailer-card[data-video-provider="onedrive"] .trailer-stage{border-radius:20px}
+.trailer-card:is([data-video-provider="onedrive"],[data-video-provider="catalog"]){position:relative;padding:18px 7px 13px;border:2px solid var(--wine);border-radius:30px;box-shadow:0 12px 28px #29252226}
+.trailer-card:is([data-video-provider="onedrive"],[data-video-provider="catalog"])::before,.trailer-card:is([data-video-provider="onedrive"],[data-video-provider="catalog"])::after{content:"";position:absolute;left:50%;transform:translateX(-50%);height:3px;border-radius:4px;background:var(--wine);opacity:.6;pointer-events:none}
+.trailer-card:is([data-video-provider="onedrive"],[data-video-provider="catalog"])::before{top:6px;width:30px}
+.trailer-card:is([data-video-provider="onedrive"],[data-video-provider="catalog"])::after{bottom:4px;width:42px}
+.trailer-card:is([data-video-provider="onedrive"],[data-video-provider="catalog"]) .trailer-stage{border-radius:20px}
 
 /* Ampliação do leitor original, mantendo a ligação OneDrive do editor. */
 .trailer-expanded{position:fixed;inset:0;width:100vw;max-width:none;height:100dvh;max-height:none;margin:0;padding:0;border:0;background:#111;color:#fff;overflow:hidden}.trailer-expanded::backdrop{background:#111}.trailer-expanded iframe{display:block;width:100%;height:100%;border:0}.trailer-expanded-close{position:absolute;right:16px;top:16px;width:44px;height:44px;padding:0;border:1px solid #ffffff80;border-radius:50%;background:#111a;color:#fff;font:30px Arial;cursor:pointer;z-index:1}
+
+/* Leitor nativo: o vídeo é partilhado com a página Filmes. */
+.trailer-stage .trailer-video{position:absolute;inset:0;display:block;width:100%;height:100%;max-height:none;object-fit:contain;background:#111;border:0;border-radius:inherit;touch-action:manipulation}.trailer-video:fullscreen{object-fit:contain;border-radius:0}.trailer-expanded video{display:block;width:100%;height:100%;object-fit:contain}.trailer-unavailable{height:100%;display:flex;flex-direction:column;justify-content:center;align-items:center;background:var(--paper,#f4f0e7)}.trailer-unavailable img{width:100%;max-height:80%;object-fit:contain}.trailer-unavailable p{font:13px/1.4 Arial!important;text-align:center!important;padding:10px;margin:0!important;color:var(--ink,#292522)}
