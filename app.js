@@ -63,12 +63,15 @@ function lastPageMarkup(image,link,zoom=false){
   return `<a href="${esc(link)}" target="_blank" rel="noopener noreferrer" data-pdf-last-page="true" style="${linkStyle}">${markup}</a>`;
 }
 function page(content,cls='',article=null,text=null){pages.push({content,cls,article,text});}
-const editionColorStyle=document.createElement('style');
-document.head.append(editionColorStyle);
-let editionColorReady=Promise.resolve(),editionColorRevision=0;
+const editionColorStyle=document.createElement('style'),sectionColorStyle=document.createElement('style');
+sectionColorStyle.id='sectionColorStyles';
+document.head.append(editionColorStyle,sectionColorStyle);
+let editionColorReady=Promise.resolve(),editionColorRevision=0,sectionColorReady=Promise.resolve();
 function updateEditionColor(edition){
   const revision=++editionColorRevision;
   editionColorStyle.textContent='';
+  sectionColorStyle.textContent='';
+  sectionColorStyle.dataset.ready='false';
   editionColorReady=RevistaEditionColor.resolve(edition).then(theme=>{
     if(revision===editionColorRevision)editionColorStyle.textContent=RevistaEditionColor.css(theme);
   });
@@ -173,6 +176,8 @@ const indexEntries=contentsEntries;if(newsStart>=0)indexEntries.push({kind:'sect
 const indexSheets=paginateContents(indexEntries);
 for(let toc=0;toc<tocCount;toc++)pages[tocStart+toc].content='<div class="eyebrow">NESTA EDIÇÃO</div>'+(toc===0?'<h2>Índice.</h2>':'')+indexSheets[toc].map(contentsEntry).join('');
 window.RevistaTheme?.start(pages,themeArticles);
+const colorRevision=editionColorRevision;
+sectionColorReady=RevistaEditionColor.sections(edition,pages).then(css=>{if(colorRevision===editionColorRevision){sectionColorStyle.textContent=css;sectionColorStyle.dataset.ready='true'}});
 if(flip){flip.destroy();$('#bookWrap').innerHTML='<div id="book"></div>'}$('#book').innerHTML=pages.map((p,i)=>`<div class="page ${p.cls} ${p.themeClass||''}" data-sheet-index="${i}" ${i===0||i===pages.length-1?'data-density="hard"':''}><div class="page-inner">${p.content}<div class="folio" ${(p.cls==='uploaded-cover'||p.cls==='uploaded-back-cover'||p.cls==='poster-page')?'hidden style="display:none"':''}><span>${edition.demo?'EDIÇÃO EXPERIMENTAL':'PRAZERES INTERROMPIDOS'}</span><span>${String(i+1).padStart(2,'0')}</span></div></div></div>`).join('');
 if(editorialStart>=0)fitEditorialContent(pages[editorialStart],$('#book .editorial-page .page-inner'));
 const mobile=matchMedia('(pointer: coarse)').matches||innerWidth<=700;document.body.classList.toggle('touch-reader',mobile);$('#hint').textContent=mobile?'Deslize para os lados ou use as setas. Use A+ para ampliar a leitura.':'Folheie pelos cantos ou use as setas.';let initial=0;const params=new URLSearchParams(location.hash.slice(1));try{initial=params.get('edicao')===edition.id?Number(params.get('pagina')||1)-1:Number(localStorage.getItem('pi-page-'+edition.id)||0)}catch{}if(new URLSearchParams(location.search).get('amostra')==='trailers'&&!params.has('pagina')&&trailerStart>=0)initial=trailerStart;initial=Math.max(0,Math.min(pages.length-1,initial||0));
@@ -228,10 +233,10 @@ let pdfFrame;
 $('#downloadPDF').onclick=async()=>{
  const button=$('#downloadPDF'),notice=$('#exportState');button.disabled=true;notice.textContent='A preparar as páginas…';
  try{
- await Promise.all([window.RevistaTheme?.ready(),editionColorReady]);
+ await Promise.all([window.RevistaTheme?.ready(),editionColorReady,sectionColorReady]);
  if(pdfFrame)pdfFrame.remove();pdfFrame=document.createElement('iframe');pdfFrame.title='Edição preparada para guardar em PDF';pdfFrame.style.cssText='position:fixed;left:-10000px;top:0;width:460px;height:640px;border:0';document.body.append(pdfFrame);
  const doc=pdfFrame.contentDocument;
- const styles=Array.from(document.querySelectorAll('link[rel="stylesheet"]')).map(l=>'<link rel="stylesheet" href="'+esc(l.href)+'">').join('')+'<style>'+textStyles.textContent+editionColorStyle.textContent+(window.RevistaTheme?.css()||'')+'</style>';
+ const styles=Array.from(document.querySelectorAll('link[rel="stylesheet"]')).map(l=>'<link rel="stylesheet" href="'+esc(l.href)+'">').join('')+'<style>'+textStyles.textContent+editionColorStyle.textContent+sectionColorStyle.textContent+(window.RevistaTheme?.css()||'')+'</style>';
  const content=pages.map((p,i)=>'<section id="pdf-page-'+(i+1)+'" class="page '+esc(p.cls+(p.themeClass?' '+p.themeClass:''))+'"><div class="page-inner">'+p.content+((p.cls==='uploaded-cover'||p.cls==='uploaded-back-cover'||p.cls==='poster-page')?'':'<div class="folio"><span>'+(edition.demo?'EDIÇÃO EXPERIMENTAL':'PRAZERES INTERROMPIDOS')+'</span><span>'+String(i+1).padStart(2,'0')+'</span></div>')+'</div></section>').join('');
  doc.open();doc.write('<!doctype html><html lang="pt-PT"><head><meta charset="utf-8"><title>Prazeres Interrompidos - '+esc(edition.month)+' - N.º '+esc(edition.number)+'</title>'+styles+'<style>@page{size:460px 640px;margin:0}html,body{margin:0;padding:0;width:460px;background:white}*{-webkit-print-color-adjust:exact;print-color-adjust:exact}.page{position:relative!important;display:block!important;width:460px!important;height:640px!important;margin:0!important;break-after:page;page-break-after:always;break-inside:avoid;border:0;box-shadow:none!important;overflow:hidden}.page:last-child{break-after:auto;page-break-after:auto}.page-inner{position:relative!important;width:460px!important;height:640px!important;transform:none!important}.index-item{color:inherit}.listen{text-decoration:none}a{color:inherit;text-decoration:none}</style></head><body>'+content+'</body></html>');doc.close();
  // Keep audio and index destinations clickable in the PDF.

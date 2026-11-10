@@ -47,10 +47,11 @@ function palette(color,automatic=false){
   };
 }
 let cachedSource='',cachedSample;
-function sample(source){
+function sample(source,surface){
   if(!source)return Promise.resolve(null);
-  if(source===cachedSource)return cachedSample;
-  cachedSource=source;
+  const cacheKey=JSON.stringify([source,surface]);
+  if(cacheKey===cachedSource)return cachedSample;
+  cachedSource=cacheKey;
   cachedSample=new Promise(resolve=>{
     const image=new Image();
     const finish=color=>{
@@ -63,9 +64,20 @@ function sample(source){
       try{
         const canvas=document.createElement('canvas');
         canvas.width=canvas.height=72;
+        if(surface)canvas.height=100;
         const context=canvas.getContext('2d',{willReadFrequently:true});
-        context.drawImage(image,0,0,72,72);
-        finish(dominant(context.getImageData(0,0,72,72).data));
+        if(surface){
+          context.fillStyle=surface.paper;
+          context.fillRect(0,0,canvas.width,canvas.height);
+          context.globalAlpha=surface.opacity??1;
+          context.filter=surface.filter||'none';
+        }
+        if(surface?.cover){
+          const scale=Math.max(canvas.width/image.naturalWidth,canvas.height/image.naturalHeight);
+          const width=image.naturalWidth*scale,height=image.naturalHeight*scale;
+          context.drawImage(image,(canvas.width-width)/2,(canvas.height-height)/2,width,height);
+        }else context.drawImage(image,0,0,canvas.width,canvas.height);
+        finish(dominant(context.getImageData(0,0,canvas.width,canvas.height).data));
       }catch{finish(null)}
     };
     image.onerror=()=>finish(null);
@@ -93,5 +105,45 @@ ${scope} :is(.eyebrow,.folio){border-color:var(--section-rule)}
 ${scope} .cover-art::before,${scope} .cover-art::after{border-color:var(--section-rule)}
 ${scope} .cover-art span{color:var(--section-rule)}`;
 }
-root.RevistaEditionColor={fallback,eligible,valid,dominant,palette,resolve,css};
+// Trial confined to November: use the actual next sheet, including image-only pages.
+const followsNextPage=edition=>edition?.id==='2026-11';
+async function nextPageColor(page){
+  const paper=root.getComputedStyle?.(document.documentElement).getPropertyValue('--paper').trim()||'#faf7ef';
+  if(page.cls.split(/\s+/).includes('poster-page')){
+    return sample(page.article?.cover||page.news?.image||page.lastPageImage,{paper});
+  }
+  if(page.themeClass?.split(/\s+/).includes('episode-themed')){
+    const theme=await root.RevistaTheme?.preview(page.article);
+    if(theme){
+      const settings=root.RevistaTheme.adjustments(page.article);
+      const color=theme.motif?await sample(theme.motif,{
+        paper:theme.paper,opacity:(100-settings.transparency)/100,
+        filter:root.RevistaTheme.filterFor(settings),cover:true
+      }):null;
+      return color||theme.paper;
+    }
+  }
+  return valid(paper)?paper:'#faf7ef';
+}
+function sections(edition,pages){
+  if(!followsNextPage(edition))return Promise.resolve('');
+  const dividers=[];
+  pages.forEach((page,index)=>{
+    if(!page.cls.split(/\s+/).some(cls=>cls==='section-divider'||cls==='news-transition'))return;
+    const next=pages[index+1];
+    if(!next)return;
+    const className='section-next-page-'+index;
+    page.themeClass=[page.themeClass,className].filter(Boolean).join(' ');
+    dividers.push({next,className});
+  });
+  return Promise.all(dividers.map(async({next,className})=>{
+    await root.RevistaTheme?.ready();
+    const color=await nextPageColor(next);
+    if(!valid(color))return '';
+    const theme=palette(color),scope='.page.cover.'+className;
+    return `${scope},${scope} .page-inner{background:${theme.background};color:${theme.ink};--section-rule:${theme.rule}}
+${scope} :is(h2,.eyebrow,.folio){color:${theme.ink};border-color:${theme.rule}}`;
+  })).then(rules=>rules.join('\n'));
+}
+root.RevistaEditionColor={fallback,eligible,valid,dominant,palette,resolve,css,followsNextPage,sections};
 })(typeof window==='undefined'?globalThis:window);
