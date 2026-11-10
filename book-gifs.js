@@ -96,7 +96,20 @@ function preparePDF(doc){
  doc.querySelectorAll('.gif-frame[data-gif-page]').forEach(frame=>{const image=frame.querySelector('img');if(image){image.src=frame.dataset.gifPoster;image.removeAttribute('loading')}const link=doc.createElement('a');link.href=frame.dataset.gifPage;link.dataset.pdfGif='true';link.setAttribute('aria-label','Ver '+(frame.getAttribute('aria-label')||'Book GIF'));frame.replaceWith(link);link.append(frame)});
 }
 function fitFrames(container){
- container.querySelectorAll('.gif-page .page-inner').forEach(inner=>{const shell=inner.querySelector('.gif-shell'),frame=inner.querySelector('.gif-frame'),folio=inner.querySelector('.folio');if(!shell||!frame||!folio)return;const toolbar=shell.querySelector('.gif-toolbar'),style=getComputedStyle(inner),frameStyle=getComputedStyle(frame);const decoration=['paddingTop','paddingBottom','borderTopWidth','borderBottomWidth'].reduce((sum,key)=>sum+(parseFloat(frameStyle[key])||0),0);const space=inner.clientHeight-(parseFloat(style.paddingBottom)||0)-folio.offsetHeight-shell.offsetTop-(toolbar?.offsetHeight||0)-decoration-20;frame.style.setProperty('--gif-image-height',Math.max(80,Math.min(360,space))+'px')});
+ container.querySelectorAll('.gif-page .page-inner').forEach(inner=>{
+  const shell=inner.querySelector('.gif-shell');
+  const frame=inner.querySelector('.gif-frame');
+  const folio=inner.querySelector('.folio');
+  if(!shell||!frame||!folio)return;
+  const toolbar=shell.querySelector('.gif-toolbar');
+  const audio=inner.querySelector('.gif-audio');
+  const style=getComputedStyle(inner),frameStyle=getComputedStyle(frame);
+  const decoration=['paddingTop','paddingBottom','borderTopWidth','borderBottomWidth']
+   .reduce((sum,key)=>sum+(parseFloat(frameStyle[key])||0),0);
+  const space=inner.clientHeight-(parseFloat(style.paddingBottom)||0)-folio.offsetHeight
+   -shell.offsetTop-(toolbar?.offsetHeight||0)-(audio?.offsetHeight||0)-decoration-20;
+  frame.style.setProperty('--gif-image-height',Math.max(80,Math.min(360,space))+'px');
+ });
 }
 root.RevistaGIFs={markup,canRender,hasText:root.RevistaTrailers.hasText,sectionTitle,keepVisible,prepare,stop,preparePDF,fitFrames};
 })(window);
