@@ -6,7 +6,8 @@ const play='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5v14l11-7z" 
 const pause='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 5h4v14H7zm6 0h4v14h-4z" fill="currentColor"/></svg>';
 const sectionTitle='Book GIFs - Episódios do Nosso Arquivo';
 const reduced=matchMedia('(prefers-reduced-motion: reduce)');
-let expanded=null,lastPage=null;
+const manualPlayback=new WeakSet();
+let expanded=null;
 function canRender(item){return !!String(item.title||'').trim()&&!!String(item.author||'').trim()}
 function markup(item){
  const match=root.RevistaFilmCatalog.match(item,'gif'),gif=match.item,title=String(item.title||'Book GIF');
@@ -21,29 +22,75 @@ function animate(shell,on){
  const button=shell.querySelector('[data-gif-toggle]');
  if(button){const label=on?'Mostrar imagem fixa':'Animar GIF';button.innerHTML=on?pause:play;button.setAttribute('aria-label',label);button.title=label;button.dataset.tooltip=label;button.setAttribute('aria-pressed',String(on))}
 }
-const allowed=shell=>shell.dataset.gifIntent==='play'||(shell.dataset.gifIntent!=='pause'&&!reduced.matches);
-function keepVisible(page){
- lastPage=page;
- requestAnimationFrame(()=>fitFrames(document));
- document.querySelectorAll('#book .gif-shell').forEach(shell=>{const sheet=shell.closest('[data-sheet-index]');const visible=sheet&&[page,page+1].includes(Number(sheet.dataset.sheetIndex));animate(shell,!!visible&&allowed(shell))});
+function reset(shell){
+ manualPlayback.delete(shell);
+ animate(shell,false);
 }
-function prepare(container){container.querySelectorAll('.gif-shell').forEach(shell=>animate(shell,allowed(shell)))}
-function stop(){if(expanded){expanded.dataset.resume='false';expanded.close();expanded=null}document.querySelectorAll('.gif-shell').forEach(shell=>animate(shell,false))}
+function keepVisible(page){
+ requestAnimationFrame(()=>fitFrames(document));
+ document.querySelectorAll('#book .gif-shell').forEach(shell=>{
+  const sheet=shell.closest('[data-sheet-index]');
+  if(!sheet||sheet.hidden||![page,page+1].includes(Number(sheet.dataset.sheetIndex)))reset(shell);
+ });
+}
+function prepare(container){container.querySelectorAll('.gif-shell').forEach(reset)}
+function stop(){
+ const dialog=expanded;
+ expanded=null;
+ dialog?.close();
+ prepare(document);
+}
 function expand(shell){
- const image=shell.querySelector('.gif-image');if(!image)return;
- const wasPlaying=shell.dataset.gifPlaying==='true';animate(shell,false);
+ const image=shell.querySelector('.gif-image');
+ if(!image||expanded)return;
+ animate(shell,false);
  const dialog=document.createElement('dialog');dialog.className='gif-expanded';dialog.setAttribute('aria-label',shell.dataset.gifTitle||'Book GIF');
  const close=document.createElement('button');close.type='button';close.className='trailer-expanded-close';close.textContent='×';close.setAttribute('aria-label','Fechar GIF ampliado');close.onclick=()=>dialog.close();
- const frame=document.createElement('div');frame.className='gif-frame';const picture=document.createElement('img');picture.src=wasPlaying?image.dataset.gifSource:image.dataset.gifPoster;picture.alt=image.alt;frame.append(picture);dialog.append(frame,close);document.body.append(dialog);expanded=dialog;
+ const frame=document.createElement('div');frame.className='gif-frame';const picture=document.createElement('img');picture.src=image.dataset.gifSource;picture.alt=image.alt;frame.append(picture);dialog.append(frame,close);document.body.append(dialog);expanded=dialog;
  dialog.addEventListener('keydown',event=>event.stopPropagation());
- dialog.addEventListener('close',()=>{dialog.remove();if(expanded===dialog)expanded=null;if(shell.isConnected)animate(shell,dialog.dataset.resume!=='false'&&!document.hidden&&wasPlaying)},{once:true});dialog.showModal();
+ dialog.addEventListener('close',()=>{
+  dialog.remove();
+  if(expanded!==dialog)return;
+  expanded=null;
+  if(shell.isConnected&&!document.hidden&&manualPlayback.has(shell))animate(shell,true);
+ },{once:true});
+ dialog.showModal();
 }
 const protectedShells=new WeakSet();
-function protect(){document.querySelectorAll('.gif-shell').forEach(shell=>{if(protectedShells.has(shell))return;protectedShells.add(shell);for(const event of ['pointerdown','pointerup','pointermove','mousedown','mouseup','mousemove','touchstart','touchmove','touchend','keydown','click'])shell.addEventListener(event,e=>e.stopPropagation())})}
+function protect(){
+ document.querySelectorAll('.gif-shell').forEach(shell=>{
+  if(protectedShells.has(shell))return;
+  protectedShells.add(shell);
+  for(const event of ['pointerdown','pointerup','pointermove','mousedown','mouseup','mousemove','touchstart','touchmove','touchend','keydown','click'])shell.addEventListener(event,e=>e.stopPropagation());
+  const frame=shell.querySelector('.gif-frame[data-gif-page]');
+  frame?.addEventListener('pointerenter',event=>{
+   if(event.pointerType==='mouse'&&!reduced.matches&&!expanded&&!document.hidden)animate(shell,true);
+  });
+  frame?.addEventListener('pointerleave',()=>{
+   if(!manualPlayback.has(shell))animate(shell,false);
+  });
+ });
+}
 new MutationObserver(protect).observe(document.documentElement,{childList:true,subtree:true});protect();
-document.addEventListener('click',event=>{const shell=event.target.closest?.('.gif-shell');if(!shell)return;if(event.target.closest('[data-gif-expand]')){event.preventDefault();event.stopPropagation();expand(shell)}else if(event.target.closest('[data-gif-toggle]')){event.preventDefault();event.stopPropagation();const on=shell.dataset.gifPlaying!=='true';shell.dataset.gifIntent=on?'play':'pause';animate(shell,on)}},true);
-document.addEventListener('visibilitychange',()=>{if(document.hidden)stop();else{if(lastPage!==null)keepVisible(lastPage);const reading=document.querySelector('#reading[open] #readingContent');if(reading)prepare(reading)}});
-reduced.addEventListener('change',()=>{if(lastPage!==null)keepVisible(lastPage)});
+document.addEventListener('click',event=>{
+ const shell=event.target.closest?.('.gif-shell');
+ if(!shell)return;
+ if(event.target.closest('[data-gif-expand]')){
+  event.preventDefault();event.stopPropagation();expand(shell);
+ }else if(event.target.closest('[data-gif-toggle]')){
+  event.preventDefault();event.stopPropagation();
+  if(shell.dataset.gifPlaying==='true')reset(shell);
+  else{
+   manualPlayback.add(shell);
+   animate(shell,true);
+  }
+ }
+},true);
+document.addEventListener('visibilitychange',()=>{if(document.hidden)stop()});
+reduced.addEventListener('change',()=>{
+ if(!reduced.matches)return;
+ document.querySelectorAll('.gif-shell').forEach(shell=>{if(!manualPlayback.has(shell))animate(shell,false)});
+});
 function preparePDF(doc){
  doc.querySelectorAll('.gif-toolbar').forEach(el=>el.remove());
  doc.querySelectorAll('.gif-frame[data-gif-page]').forEach(frame=>{const image=frame.querySelector('img');if(image){image.src=frame.dataset.gifPoster;image.removeAttribute('loading')}const link=doc.createElement('a');link.href=frame.dataset.gifPage;link.dataset.pdfGif='true';link.setAttribute('aria-label','Ver '+(frame.getAttribute('aria-label')||'Book GIF'));frame.replaceWith(link);link.append(frame)});
