@@ -37,8 +37,12 @@ test('O mesmo livro pode ter filme e GIF, com escolhas independentes por formato
   assert.equal(c.catalog.match({title:'Livro',author:'Autora',gifId:'animacao-2'},'gif').item.id,'animacao-2');
   assert.equal(c.catalog.match({title:'Livro',author:'Outra',gifId:'animacao'},'gif').status,'missing');
 });
-test('O leitor de GIF usa a animação e a capa partilhadas dentro da moldura',async()=>{
-  const gif={...film('animacao','Livro','Autora'),kind:'gif',url:origin+'/media/animacao.gif'};
+test('O leitor de GIF conserva a versão da animação e da capa partilhadas',async()=>{
+  const gif={
+    ...film('animacao','Livro','Autora'),kind:'gif',
+    url:origin+'/media/animacao.gif?v=429913f42697cd3a',
+    poster:origin+'/media/animacao.jpg?v=dfd019063161e574'
+  };
   const c=client([gif]);await c.catalog.load();const html=c.gifs.markup({title:'Livro',author:'Autora'});
   assert(html.includes('class="gif-frame"'));assert(html.includes('data-gif-source="'+gif.url+'"'));
   assert(html.includes('src="'+gif.poster+'"'));assert(html.includes('data-gif-page="'+gif.pageUrl+'"'));
@@ -46,7 +50,7 @@ test('O leitor de GIF usa a animação e a capa partilhadas dentro da moldura',a
 });
 test('Rejeita destinos de ficheiros fora do alojamento partilhado e IDs duplicados',()=>{
   const c=client([]),item=film('livro','Livro','Autora');
-  for(const url of ['javascript:alert(1)','https://outro.example/video.mp4',origin+'/media/livro.mp4?token=abc'])assert.throws(()=>c.catalog.validateCatalog({version:1,items:[{...item,url}]}));
+  for(const url of ['javascript:alert(1)','https://outro.example/video.mp4',item.url+'?token=abc',item.url+'?v=abc',item.url+'?v=429913f42697cd3a&token=abc'])assert.throws(()=>c.catalog.validateCatalog({version:1,items:[{...item,url}]}));
   assert.throws(()=>c.catalog.validateCatalog({version:1,items:[item,item]}));
 });
 test('Consultas simultâneas partilham um pedido e uma falha mantém o catálogo conhecido',async()=>{

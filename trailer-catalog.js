@@ -6,7 +6,13 @@ const endpoint=origin+'/api/catalogo';
 let entries=null,pending=null,lastError='',updatedAt='';
 const normalize=value=>String(value||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLocaleLowerCase('pt-PT').replace(/[^\p{L}\p{N}]+/gu,' ').trim();
 function mediaURL(value,extension){
- try{const u=new URL(value);return u.origin===origin&&!u.username&&!u.password&&!u.search&&!u.hash&&new RegExp('^/media/[^/]+\\.'+extension+'$','i').test(u.pathname)?u.href:''}catch{return ''}
+ try{
+  const url=new URL(value);
+  // Filmes uses a content hash so browsers fetch the new file after a replacement.
+  const validVersion=!url.search||/^\?v=[a-f0-9]{16}$/.test(url.search);
+  const validPath=new RegExp('^/media/[^/]+\\.'+extension+'$','i').test(url.pathname);
+  return url.origin===origin&&!url.username&&!url.password&&!url.hash&&validVersion&&validPath?url.href:'';
+ }catch{return ''}
 }
 function validateCatalog(data){
  if(data?.version!==1||!Array.isArray(data.items)||data.items.length>10000)throw Error('O catálogo de filmes não é válido.');
