@@ -66,7 +66,7 @@ test('o automático usa a letra do primeiro título após o cartaz e repete-a no
  mockSheets(t,{1:mockSheet(null,{'--wine':'#aaaaaa'}),2:mockSheet('rgb(21, 67, 89)'),3:mockSheet('rgb(255, 0, 0)')});
  const css=await colors.sections({id:'2026-11'},[divider('articles'),{cls:'poster-page',article:first},{cls:'text-page',article:first},{cls:'text-page',article:second}]);
  assert.match(css,/background:#154359/);
- assert.match(css,/\.index-item\.index-section\.section-color-link-0>span:first-child\{color:#154359\}/);
+ assert.match(css,/\.index-item\.index-section\.section-color-link-0\{color:#154359\}/);
  assert.doesNotMatch(css,/#aaaaaa|#ff0000/);
 });
 
@@ -81,5 +81,5 @@ test('um cartaz sem texto usa a cor de título do próprio tema sem copiar o liv
 test('uma escolha manual é repetida exatamente no índice',async()=>{
  const css=await colors.sections({id:'2027-01',sectionColors:{news:{mode:'custom',color:'#a1b2c3'}}},[{cls:'cover news-transition',sectionKey:'news'},paper()]);
  assert.match(css,/background:#a1b2c3/);
- assert.match(css,/section-color-link-0>span:first-child\{color:#a1b2c3\}/);
+ assert.match(css,/section-color-link-0\{color:#a1b2c3\}/);
 });
