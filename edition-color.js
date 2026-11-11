@@ -126,42 +126,55 @@ function sectionSetting(edition,key){
   const color=valid(saved?.color)?saved.color:fallback;
   return {mode:eligible(edition)&&saved?.mode==='custom'&&valid(saved.color)?'custom':'auto',color};
 }
-async function nextPageColor(page){
-  const paper=root.getComputedStyle?.(document.documentElement).getPropertyValue('--paper').trim()||'#faf7ef';
-  if(page.cls.split(/\s+/).includes('poster-page')){
-    return sample(page.article?.cover||page.news?.image||page.lastPageImage,{paper});
+const isDivider=page=>page.cls.split(/\s+/).some(cls=>cls==='section-divider'||cls==='news-transition');
+function cssColor(value){
+  if(valid(value))return value.toLowerCase();
+  const match=String(value||'').match(/^rgba?\(\s*([\d.]+)[,\s]+([\d.]+)[,\s]+([\d.]+)(?:\s*[,/]\s*[\d.]+)?\s*\)$/);
+  const channels=match&&match.slice(1,4).map(Number);
+  return channels?.every(channel=>Number.isFinite(channel)&&channel>=0&&channel<=255)?hex(channels):null;
+}
+function firstTitleColor(pages,index){
+  const first=pages[index+1],book=root.document?.getElementById('book');
+  if(!book||!root.getComputedStyle)return '#272925';
+  // A full-page poster can precede the first book title rendered as text.
+  // Stay within the first item, so a title from the next book cannot supply its colour.
+  for(let n=index+1;n<pages.length;n++){
+    const page=pages[n];
+    if(isDivider(page)||page.article!==first.article||page.news!==first.news)break;
+    const sheet=book.querySelector('[data-sheet-index="'+n+'"]');
+    const title=sheet?.querySelector('.meta-title,h2');
+    if(!title?.textContent.trim())continue;
+    const color=cssColor(root.getComputedStyle(title).color);
+    if(color)return color;
   }
-  if(page.themeClass?.split(/\s+/).includes('episode-themed')){
-    const theme=await root.RevistaTheme?.preview(page.article);
-    if(theme){
-      const settings=root.RevistaTheme.adjustments(page.article);
-      const color=theme.motif?await sample(theme.motif,{
-        paper:theme.paper,opacity:(100-settings.transparency)/100,
-        filter:root.RevistaTheme.filterFor(settings),cover:true
-      }):null;
-      return color||theme.paper;
-    }
+  // Image-only items use the same title colour defined by their page theme.
+  const sheet=book.querySelector('[data-sheet-index="'+(index+1)+'"]');
+  if(sheet){
+    const style=root.getComputedStyle(sheet);
+    const variable=first.themeClass?.split(/\s+/).includes('episode-themed')?'--wine':'--ink';
+    return cssColor(style.getPropertyValue(variable).trim())||cssColor(style.color)||'#272925';
   }
-  return valid(paper)?paper:'#faf7ef';
+  return '#272925';
 }
 function sections(edition,pages){
   if(!followsNextPage(edition))return Promise.resolve('');
   const dividers=[];
   pages.forEach((page,index)=>{
-    if(!page.cls.split(/\s+/).some(cls=>cls==='section-divider'||cls==='news-transition'))return;
+    if(!isDivider(page))return;
     const next=pages[index+1];
     if(!next)return;
     const className='section-next-page-'+index;
     page.themeClass=[page.themeClass,className].filter(Boolean).join(' ');
-    dividers.push({next,className,setting:sectionSetting(edition,page.sectionKey)});
+    dividers.push({index,className,setting:sectionSetting(edition,page.sectionKey)});
   });
-  return Promise.all(dividers.map(async({next,className,setting})=>{
+  return Promise.all(dividers.map(async({index,className,setting})=>{
     if(setting.mode==='auto')await root.RevistaTheme?.ready();
-    const color=setting.mode==='custom'?setting.color:await nextPageColor(next);
+    const color=setting.mode==='custom'?setting.color:firstTitleColor(pages,index);
     if(!valid(color))return '';
     const theme=palette(color),scope='.page.cover.'+className;
     return `${scope},${scope} .page-inner{background:${theme.background};color:${theme.ink};--section-rule:${theme.rule}}
-${scope} :is(h2,.eyebrow,.folio){color:${theme.ink};border-color:${theme.rule}}`;
+${scope} :is(h2,.eyebrow,.folio){color:${theme.ink};border-color:${theme.rule}}
+.index-item.index-section.section-color-link-${index}>span:first-child{color:${theme.background}}`;
   })).then(rules=>rules.join('\n'));
 }
 root.RevistaEditionColor={fallback,eligible,valid,dominant,palette,resolve,css,followsNextPage,sections,sectionDefinitions,sectionSetting};
