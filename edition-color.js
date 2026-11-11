@@ -4,7 +4,7 @@
 const fallback='#532b35';
 const cream=[247,237,218],black=[0,0,0],white=[255,255,255];
 const valid=color=>typeof color==='string'&&/^#[0-9a-f]{6}$/i.test(color);
-const eligible=edition=>edition?.id!=='2026-10';
+const eligible=edition=>followsNextPage(edition);
 const rgb=color=>color.slice(1).match(/../g).map(channel=>parseInt(channel,16));
 const hex=channels=>'#'+channels.map(channel=>Math.round(channel).toString(16).padStart(2,'0')).join('');
 function luminance(channels){
@@ -105,8 +105,27 @@ ${scope} :is(.eyebrow,.folio){border-color:var(--section-rule)}
 ${scope} .cover-art::before,${scope} .cover-art::after{border-color:var(--section-rule)}
 ${scope} .cover-art span{color:var(--section-rule)}`;
 }
-// Trial confined to November: use the actual next sheet, including image-only pages.
-const followsNextPage=edition=>edition?.id==='2026-11';
+const sectionDefinitions=[
+  {key:'articles',label:'Episódios do Podcast'},
+  {key:'extraArticles',label:'Episódios Extra'},
+  {key:'bookTrailers',label:'Book Trailers'},
+  {key:'bookGifs',label:'Book GIFs'},
+  {key:'news',label:'Novidades do Projeto'}
+];
+// The edition identifier is authoritative. New drafts can use their month field.
+function followsNextPage(edition){
+  const id=String(edition?.id||'').match(/^(\d{4})-(0[1-9]|1[0-2])$/);
+  if(id)return Number(id[1])*100+Number(id[2])>=202611;
+  const months=['janeiro','fevereiro','marco','abril','maio','junho','julho','agosto','setembro','outubro','novembro','dezembro'];
+  const label=String(edition?.month||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase();
+  const match=label.match(/\b(janeiro|fevereiro|marco|abril|maio|junho|julho|agosto|setembro|outubro|novembro|dezembro)\s+(?:de\s+)?(\d{4})\b/);
+  return !!match&&Number(match[2])*100+months.indexOf(match[1])+1>=202611;
+}
+function sectionSetting(edition,key){
+  const saved=sectionDefinitions.some(section=>section.key===key)?edition?.sectionColors?.[key]:null;
+  const color=valid(saved?.color)?saved.color:fallback;
+  return {mode:eligible(edition)&&saved?.mode==='custom'&&valid(saved.color)?'custom':'auto',color};
+}
 async function nextPageColor(page){
   const paper=root.getComputedStyle?.(document.documentElement).getPropertyValue('--paper').trim()||'#faf7ef';
   if(page.cls.split(/\s+/).includes('poster-page')){
@@ -134,16 +153,16 @@ function sections(edition,pages){
     if(!next)return;
     const className='section-next-page-'+index;
     page.themeClass=[page.themeClass,className].filter(Boolean).join(' ');
-    dividers.push({next,className});
+    dividers.push({next,className,setting:sectionSetting(edition,page.sectionKey)});
   });
-  return Promise.all(dividers.map(async({next,className})=>{
-    await root.RevistaTheme?.ready();
-    const color=await nextPageColor(next);
+  return Promise.all(dividers.map(async({next,className,setting})=>{
+    if(setting.mode==='auto')await root.RevistaTheme?.ready();
+    const color=setting.mode==='custom'?setting.color:await nextPageColor(next);
     if(!valid(color))return '';
     const theme=palette(color),scope='.page.cover.'+className;
     return `${scope},${scope} .page-inner{background:${theme.background};color:${theme.ink};--section-rule:${theme.rule}}
 ${scope} :is(h2,.eyebrow,.folio){color:${theme.ink};border-color:${theme.rule}}`;
   })).then(rules=>rules.join('\n'));
 }
-root.RevistaEditionColor={fallback,eligible,valid,dominant,palette,resolve,css,followsNextPage,sections};
+root.RevistaEditionColor={fallback,eligible,valid,dominant,palette,resolve,css,followsNextPage,sections,sectionDefinitions,sectionSetting};
 })(typeof window==='undefined'?globalThis:window);
