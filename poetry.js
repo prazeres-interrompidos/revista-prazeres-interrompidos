@@ -4,6 +4,8 @@
 const OPEN='[poema]',CLOSE='[/poema]';
 const ALIGNMENT=/^\[alinhar=(left|center|right|justify)\]/;
 const alignments=new Set(['left','center','right','justify']);
+const ITALIC_OPEN='[italico]',ITALIC_CLOSE='[/italico]';
+const italicPattern=()=>/\[\/?italico\]/g;
 const escape=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const poemPattern=()=>/^\[poema\][ \t]*\n([\s\S]*?)\n\[\/poema\][ \t]*(?=\n|$)/gm;
 const lines=text=>text.match(/[^\n]*\n|[^\n]+$/g)||[];
@@ -25,34 +27,86 @@ function blocks(value){
   }));
 }
 const prefix=alignment=>alignment?'[alinhar='+alignment+']':'';
+function inlineRuns(value,active=false){
+  const text=String(value),runs=[];
+  let cursor=0;
+  for(const marker of text.matchAll(italicPattern())){
+    if(marker.index>cursor)runs.push({text:text.slice(cursor,marker.index),italic:active});
+    active=marker[0]===ITALIC_OPEN;
+    cursor=marker.index+marker[0].length;
+  }
+  if(cursor<text.length)runs.push({text:text.slice(cursor),italic:active});
+  return {runs,active};
+}
+function serializeInline(runs){
+  let text='',active=false;
+  for(const run of runs){
+    if(!run.text)continue;
+    if(run.italic!==active){text+=run.italic?ITALIC_OPEN:ITALIC_CLOSE;active=run.italic}
+    text+=run.text;
+  }
+  return text+(active?ITALIC_CLOSE:'');
+}
 function serialize(parts){
-  return parts.map(p=>p.poem?OPEN+'\n'+p.text+'\n'+CLOSE+'\n':prefix(p.alignment)+p.text).join('');
+  return parts.map(p=>{
+    const text=p.runs?serializeInline(p.runs):p.text;
+    return p.poem?OPEN+'\n'+text+'\n'+CLOSE+'\n':prefix(p.alignment)+text;
+  }).join('');
 }
 function render(value,defaultAlignment){
+  let italic=false;
   return blocks(value).map(block=>{
-    if(block.poem)return '<div class="poem">'+escape(block.text)+'</div>';
-    const text=block.text.replace(/\n$/,'');
-    if(!text.trim())return '';
+    const text=block.poem?block.text:block.text.replace(/\n$/,'');
+    const parsed=inlineRuns(text,italic);
+    italic=parsed.active;
+    const html=parsed.runs.map(run=>run.italic?'<em>'+escape(run.text)+'</em>':escape(run.text)).join('');
+    if(block.poem)return '<div class="poem">'+html+'</div>';
+    if(!parsed.runs.some(run=>run.text.trim()))return '';
     const alignment=block.alignment||defaultAlignment;
     const style=alignments.has(alignment)?' style="text-align:'+alignment+'"':'';
-    return '<p'+style+'>'+escape(text)+'</p>';
+    return '<p'+style+'>'+html+'</p>';
   }).join('');
 }
 function hasFormatting(value){
-  return blocks(value).some(block=>block.poem||block.alignment);
+  return italicPattern().test(String(value??''))||blocks(value).some(block=>block.poem||block.alignment);
+}
+function inlineTokens(runs){
+  const text=runs.map(run=>run.text).join(''),tokens=[];
+  let index=0,offset=0;
+  // Keep a word together even when only some of its letters are italic.
+  for(const token of text.match(/\S+\s*|\s+/g)||[]){
+    const fragments=[];
+    let remaining=token.length;
+    while(remaining){
+      const run=runs[index],length=Math.min(remaining,run.text.length-offset);
+      fragments.push({text:run.text.slice(offset,offset+length),italic:run.italic});
+      remaining-=length;offset+=length;
+      if(offset===run.text.length){index++;offset=0}
+    }
+    tokens.push(fragments);
+  }
+  return tokens;
 }
 function paginate(value,fits,nextPage){
   const pages=[];
-  let current=[];
-  function append(block,text){
+  let current=[],italic=false;
+  function append(block,fragments){
     const candidate=current.slice();
     const tail=candidate[candidate.length-1];
-    if(tail?.block===block)candidate[candidate.length-1]={...tail,text:tail.text+text};
-    else candidate.push({...block,block,text});
+    const runs=tail?.block===block?tail.runs.map(run=>({...run})):[];
+    for(const fragment of fragments){
+      const last=runs[runs.length-1];
+      if(last?.italic===fragment.italic)last.text+=fragment.text;
+      else runs.push({...fragment});
+    }
+    if(tail?.block===block)candidate[candidate.length-1]={...tail,runs};
+    else candidate.push({...block,block,runs});
     return candidate;
   }
   for(const block of blocks(value)){
-    for(const token of block.text.match(/\S+\s*|\s+/g)||[]){
+    const parsed=inlineRuns(block.text,italic);
+    italic=parsed.active;
+    for(const token of inlineTokens(parsed.runs)){
       let candidate=append(block,token);
       if(current.length&&!fits(serialize(candidate))){
         pages.push(serialize(current));
@@ -65,6 +119,50 @@ function paginate(value,fits,nextPage){
   }
   if(current.length||!pages.length)pages.push(serialize(current));
   return pages;
+}
+function italicSelection(value,start,end){
+  const text=String(value),tokens=[];
+  const markers=/\[\/?italico\]|^\[\/?poema\][ \t]*(?=\r?$)|^\[alinhar=(?:left|center|right|justify)\]|\r?\n/gm;
+  let cursor=0,italic=false;
+  for(const marker of text.matchAll(markers)){
+    if(marker.index>cursor)tokens.push({text:text.slice(cursor,marker.index),start:cursor,italic});
+    if(marker[0]===ITALIC_OPEN||marker[0]===ITALIC_CLOSE)italic=marker[0]===ITALIC_OPEN;
+    else tokens.push({text:marker[0],start:marker.index,barrier:true});
+    cursor=marker.index+marker[0].length;
+  }
+  if(cursor<text.length)tokens.push({text:text.slice(cursor),start:cursor,italic});
+  const selected=tokens.filter(token=>!token.barrier&&token.start<end&&token.start+token.text.length>start)
+    .filter(token=>token.text.slice(Math.max(0,start-token.start),Math.min(token.text.length,end-token.start)).trim());
+  return {tokens,selected};
+}
+function selectionIsItalic(value,start,end){
+  const {selected}=italicSelection(value,start,end);
+  return selected.length>0&&selected.every(token=>token.italic);
+}
+function toggleItalic(value,start,end){
+  if(start===end)return null;
+  const {tokens,selected}=italicSelection(value,start,end);
+  if(!selected.length)return null;
+  const italic=!selected.every(token=>token.italic);
+  let result='',active=false,first=null,last=null;
+  function setActive(next){if(active!==next){result+=next?ITALIC_OPEN:ITALIC_CLOSE;active=next}}
+  function append(text,style,chosen=false){
+    if(!text)return;
+    setActive(style);
+    if(chosen&&first===null)first=result.length;
+    result+=text;
+    if(chosen)last=result.length;
+  }
+  for(const token of tokens){
+    if(token.barrier){setActive(false);result+=token.text;continue}
+    const left=Math.max(0,Math.min(token.text.length,start-token.start));
+    const right=Math.max(left,Math.min(token.text.length,end-token.start));
+    append(token.text.slice(0,left),token.italic);
+    append(token.text.slice(left,right),italic,true);
+    append(token.text.slice(right),token.italic);
+  }
+  setActive(false);
+  return {value:result,start:first,end:last,italic};
 }
 function paragraphRange(text,start,end){
   const first=text.lastIndexOf('\n',start-1)+1;
@@ -115,5 +213,5 @@ function remove(value,start,end){
   }
   return null;
 }
-root.RevistaPoetry={parse,serialize,render,hasFormatting,paginate,setAlignment,apply,remove};
+root.RevistaPoetry={parse,serialize,render,hasFormatting,paginate,setAlignment,apply,remove,toggleItalic,selectionIsItalic};
 })(typeof window==='undefined'?globalThis:window);
