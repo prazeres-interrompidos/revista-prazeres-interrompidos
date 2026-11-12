@@ -5,7 +5,8 @@ const OPEN='[poema]',CLOSE='[/poema]';
 const ALIGNMENT=/^\[alinhar=(left|center|right|justify)\]/;
 const alignments=new Set(['left','center','right','justify']);
 const ITALIC_OPEN='[italico]',ITALIC_CLOSE='[/italico]';
-const italicPattern=()=>/\[\/?italico\]/g;
+const inlinePattern=()=>/\[(\/?)(italico|negrito|sublinhado)\]/g;
+const formats=[['bold','negrito','strong'],['italic','italico','em'],['underline','sublinhado','u']];
 const escape=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const poemPattern=()=>/^\[poema\][ \t]*\n([\s\S]*?)\n\[\/poema\][ \t]*(?=\n|$)/gm;
 const lines=text=>text.match(/[^\n]*\n|[^\n]+$/g)||[];
@@ -27,25 +28,30 @@ function blocks(value){
   }));
 }
 const prefix=alignment=>alignment?'[alinhar='+alignment+']':'';
-function inlineRuns(value,active=false){
+function inlineRuns(value,active={}){
   const text=String(value),runs=[];
+  const style={italic:false,bold:false,underline:false,...active};
   let cursor=0;
-  for(const marker of text.matchAll(italicPattern())){
-    if(marker.index>cursor)runs.push({text:text.slice(cursor,marker.index),italic:active});
-    active=marker[0]===ITALIC_OPEN;
+  for(const marker of text.matchAll(inlinePattern())){
+    if(marker.index>cursor)runs.push({text:text.slice(cursor,marker.index),...style});
+    style[formats.find(format=>format[1]===marker[2])[0]]=!marker[1];
     cursor=marker.index+marker[0].length;
   }
-  if(cursor<text.length)runs.push({text:text.slice(cursor),italic:active});
-  return {runs,active};
+  if(cursor<text.length)runs.push({text:text.slice(cursor),...style});
+  return {runs,active:style};
 }
 function serializeInline(runs){
-  let text='',active=false;
+  let text='',active=[];
   for(const run of runs){
     if(!run.text)continue;
-    if(run.italic!==active){text+=run.italic?ITALIC_OPEN:ITALIC_CLOSE;active=run.italic}
+    const next=formats.filter(format=>run[format[0]]).map(format=>format[1]);
+    let common=0;
+    while(common<active.length&&active[common]===next[common])common++;
+    text+=active.slice(common).reverse().map(tag=>'[/'+tag+']').join('');
+    text+=next.slice(common).map(tag=>'['+tag+']').join('');active=next;
     text+=run.text;
   }
-  return text+(active?ITALIC_CLOSE:'');
+  return text+active.reverse().map(tag=>'[/'+tag+']').join('');
 }
 function serialize(parts){
   return parts.map(p=>{
@@ -54,12 +60,12 @@ function serialize(parts){
   }).join('');
 }
 function render(value,defaultAlignment){
-  let italic=false;
+  let active={};
   return blocks(value).map(block=>{
     const text=block.poem?block.text:block.text.replace(/\n$/,'');
-    const parsed=inlineRuns(text,italic);
-    italic=parsed.active;
-    const html=parsed.runs.map(run=>run.italic?'<em>'+escape(run.text)+'</em>':escape(run.text)).join('');
+    const parsed=inlineRuns(text,active);
+    active=parsed.active;
+    const html=parsed.runs.map(run=>formats.reduceRight((content,[key,,tag])=>run[key]?'<'+tag+'>'+content+'</'+tag+'>':content,escape(run.text))).join('');
     if(block.poem)return '<div class="poem">'+html+'</div>';
     if(!parsed.runs.some(run=>run.text.trim()))return '';
     const alignment=block.alignment||defaultAlignment;
@@ -68,7 +74,7 @@ function render(value,defaultAlignment){
   }).join('');
 }
 function hasFormatting(value){
-  return italicPattern().test(String(value??''))||blocks(value).some(block=>block.poem||block.alignment);
+  return inlinePattern().test(String(value??''))||blocks(value).some(block=>block.poem||block.alignment);
 }
 function inlineTokens(runs){
   const text=runs.map(run=>run.text).join(''),tokens=[];
@@ -79,7 +85,7 @@ function inlineTokens(runs){
     let remaining=token.length;
     while(remaining){
       const run=runs[index],length=Math.min(remaining,run.text.length-offset);
-      fragments.push({text:run.text.slice(offset,offset+length),italic:run.italic});
+      fragments.push({...run,text:run.text.slice(offset,offset+length)});
       remaining-=length;offset+=length;
       if(offset===run.text.length){index++;offset=0}
     }
@@ -89,14 +95,14 @@ function inlineTokens(runs){
 }
 function paginate(value,fits,nextPage){
   const pages=[];
-  let current=[],italic=false;
+  let current=[],active={};
   function append(block,fragments){
     const candidate=current.slice();
     const tail=candidate[candidate.length-1];
     const runs=tail?.block===block?tail.runs.map(run=>({...run})):[];
     for(const fragment of fragments){
       const last=runs[runs.length-1];
-      if(last?.italic===fragment.italic)last.text+=fragment.text;
+      if(last&&formats.every(([key])=>!!last[key]===!!fragment[key]))last.text+=fragment.text;
       else runs.push({...fragment});
     }
     if(tail?.block===block)candidate[candidate.length-1]={...tail,runs};
@@ -104,8 +110,8 @@ function paginate(value,fits,nextPage){
     return candidate;
   }
   for(const block of blocks(value)){
-    const parsed=inlineRuns(block.text,italic);
-    italic=parsed.active;
+    const parsed=inlineRuns(block.text,active);
+    active=parsed.active;
     for(const token of inlineTokens(parsed.runs)){
       let candidate=append(block,token);
       if(current.length&&!fits(serialize(candidate))){
@@ -122,7 +128,7 @@ function paginate(value,fits,nextPage){
 }
 function italicSelection(value,start,end){
   const text=String(value),tokens=[];
-  const markers=/\[\/?italico\]|^\[\/?poema\][ \t]*(?=\r?$)|^\[alinhar=(?:left|center|right|justify)\]|\r?\n/gm;
+  const markers=/\[\/?(?:italico|negrito|sublinhado)\]|^\[\/?poema\][ \t]*(?=\r?$)|^\[alinhar=(?:left|center|right|justify)\]|\r?\n/gm;
   let cursor=0,italic=false;
   for(const marker of text.matchAll(markers)){
     if(marker.index>cursor)tokens.push({text:text.slice(cursor,marker.index),start:cursor,italic});
