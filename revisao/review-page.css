@@ -1,0 +1,7 @@
+.review-banner{max-width:1160px;margin:18px auto;padding:16px 22px;background:#faf7ef;border:1px solid #c8bdad;border-left:5px solid #532b35;border-radius:5px;color:#272925;line-height:1.5}
+.review-banner strong{display:block;font:22px Georgia,serif;color:#532b35}
+.review-banner p{margin:7px 0 0;font-size:13px}
+.review-banner button{padding:7px 13px;margin:8px 0 0;border:1px solid #bba99d;border-radius:4px}
+#archive,#downloadPDF{display:none!important}
+[hidden]{display:none!important}
+@media(max-width:700px){.review-banner{margin:12px 15px;padding:12px}.review-banner strong{font-size:20px}}
