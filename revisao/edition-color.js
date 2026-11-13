@@ -174,7 +174,9 @@ function sections(edition,pages){
     const theme=palette(color),scope='.page.cover.'+className;
     return `${scope},${scope} .page-inner{background:${theme.background};color:${theme.ink};--section-rule:${theme.rule}}
 ${scope} :is(h2,.eyebrow,.folio){color:${theme.ink};border-color:${theme.rule}}
-.index-item.index-section.section-color-link-${index}{color:${theme.background}}`;
+.index-item.index-section.section-color-link-${index}{color:${theme.background}}
+.index-item.index-subitem.section-color-link-${index}{color:${theme.background}}
+.index-item.section-color-link-${index} small{color:inherit}`;
   })).then(rules=>rules.join('\n'));
 }
 root.RevistaEditionColor={fallback,eligible,valid,dominant,palette,resolve,css,followsNextPage,sections,sectionDefinitions,sectionSetting};

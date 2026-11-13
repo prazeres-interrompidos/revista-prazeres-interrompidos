@@ -16,7 +16,7 @@ async function check(){
   if(record.status==='published'){const destination=new URL(reviews.base);destination.hash=new URLSearchParams({edicao:record.editionId,pagina:'1'}).toString();location.replace(destination.href);return;}
   if(record.updatedAt===lastUpdate){notice.textContent='Está a consultar a versão de revisão mais recente.';return;}
   window.EDITIONS=[record.edition];window.REVISTA_REVIEW=true;reader.hidden=false;
-  if(!started){await script('revisao/app.js?v=revisao-20261112');started=true;}
+  if(!started){await script('revisao/app.js?v=cores-subtitulos-indice-20261113');started=true;}
   await window.RevistaFilmCatalog.load();
   editions=[record.edition];draftPreview=true;loadEdition(record.editionId);
   lastUpdate=record.updatedAt;updated.textContent='Última atualização: '+new Date(record.updatedAt).toLocaleString('pt-PT');
