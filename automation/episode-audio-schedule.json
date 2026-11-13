@@ -1,0 +1,15 @@
+{
+  "version": 1,
+  "enabled": true,
+  "timezone": "Europe/Lisbon",
+  "hour": 6,
+  "minute": 30,
+  "sections": {
+    "FR": "extraArticles",
+    "SA": "articles",
+    "SU": "articles"
+  },
+  "source": "https://prazeres-interrompidos.github.io/podcast-prazeres-interrompidos/assets/episodes.js",
+  "preserveManual": true,
+  "createArticles": false
+}
