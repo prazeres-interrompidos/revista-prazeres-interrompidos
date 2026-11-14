@@ -10,7 +10,8 @@ function mediaURL(value,extension){
   const url=new URL(value);
   // Filmes uses a content hash so browsers fetch the new file after a replacement.
   const validVersion=!url.search||/^\?v=[a-f0-9]{16}$/.test(url.search);
-  const validPath=new RegExp('^/media/[^/]+\\.'+extension+'$','i').test(url.pathname);
+  // Existing files use /media; new OneDrive imports use the hashed /api/media route.
+  const validPath=new RegExp('^/media/[^/]+\\.'+extension+'$','i').test(url.pathname)||new RegExp('^/api/media/[a-f0-9]{64}\\.'+extension+'$','i').test(url.pathname);
   return url.origin===origin&&!url.username&&!url.password&&!url.hash&&validVersion&&validPath?url.href:'';
  }catch{return ''}
 }

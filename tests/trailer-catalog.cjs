@@ -53,6 +53,17 @@ test('Rejeita destinos de ficheiros fora do alojamento partilhado e IDs duplicad
   for(const url of ['javascript:alert(1)','https://outro.example/video.mp4',item.url+'?token=abc',item.url+'?v=abc',item.url+'?v=429913f42697cd3a&token=abc'])assert.throws(()=>c.catalog.validateCatalog({version:1,items:[{...item,url}]}));
   assert.throws(()=>c.catalog.validateCatalog({version:1,items:[item,item]}));
 });
+test('Um GIF importado do OneDrive mantém disponíveis os filmes e GIFs do catálogo',async()=>{
+  const hash='8a1a4f9f6fdc0b88e42285e05145db487dbaaa33073ce8e3fdc47228a31013cc';
+  const gif={...film('onedrive-e2911f41b036f5eb','As Cartas de Berlim','Katherine Reay'),kind:'gif',url:origin+'/api/media/'+hash+'.gif?v='+hash.slice(0,16),poster:origin+'/api/media/'+hash+'.png?v='+hash.slice(0,16)};
+  const c=client([film('na-tua-mao','Na Tua Mão','Hélder Teixeira Aguiar'),gif]);
+  await c.catalog.load();
+  assert.equal(c.catalog.state().error,'');assert.equal(c.catalog.state().count,2);
+  assert.equal(c.catalog.match({title:'Na Tua Mão',author:'Hélder Teixeira Aguiar'}).item.id,'na-tua-mao');
+  assert.equal(c.catalog.match({title:gif.title,author:gif.author},'gif').item.url,gif.url);
+  assert(c.player.markup({title:'Na Tua Mão',author:'Hélder Teixeira Aguiar'}).includes('<video '));
+  for(const url of [origin+'/api/media/invalid.gif',origin+'/api/media/'+hash+'.mp4',gif.url+'&other=1','https://outro.example/api/media/'+hash+'.gif'])assert.throws(()=>c.catalog.validateCatalog({version:1,items:[{...gif,url}]}));
+});
 test('Consultas simultâneas partilham um pedido e uma falha mantém o catálogo conhecido',async()=>{
   const c=client([film('livro','Livro','Autora')]);await Promise.all([c.catalog.load(),c.catalog.load()]);assert.equal(c.calls(),1);
   c.fail();await c.catalog.load(true);assert(c.catalog.state().error);assert.equal(c.catalog.match({title:'Livro',author:'Autora'}).item.id,'livro');
