@@ -4,12 +4,11 @@
     {
       "editionId": "2026-11",
       "file": "drafts/323032362d3131.json",
-      "signature": "f7a98754dd79194822212b61623a5d8e9bbd9c9e9cc7ac1a903cd0bca891d23c",
-      "updatedAt": "2026-11-25T18:39:34.438Z",
+      "signature": "8ea3cfe245cba0d9933ec15ae5a8ea0b7afbe4fd29bbc701c342d6492ada7eaa",
+      "updatedAt": "2026-11-25T18:43:26.818Z",
       "assets": [
         "reviews/assets/06e4dbe1c3098daf132942c4447ece22728d38a5b97cb20596f46194f08a852d.webp",
         "reviews/assets/1b2239a2e5176a2408032a9baa76f71113c49f82679acf3d4947fc709b132079.png",
-        "reviews/assets/1e1fda9d2aed9d8d08a9c91ccbcb9303e7022ee55b35f16080fcc695a57d1b08.webp",
         "reviews/assets/1e8e389fd2efc795fe830dec31994e399ff8cf0a47c6626f05a2891ad3dcc208.webp",
         "reviews/assets/338ea67e39446a6591ea5e65e5663146a29bcb54967b75c1a4993b9446672d98.jpg",
         "reviews/assets/442121956981eb477b8d2b75ac98f0deec269c2754a0286466363bbd18cebb8a.jpg",
@@ -25,6 +24,7 @@
         "reviews/assets/7c45796c7b3db3b60c66735c8b5af4f51f8a6a9a612c2ce9aa617240d32e3790.webp",
         "reviews/assets/7cb7fedb40c245464d08da4c80824f8768363386d972a346f8b1ae30ebe658ed.jpg",
         "reviews/assets/7d60956d8424337c344a156350b53e63f71a6f0e01dca54005abcf0bc85d365e.webp",
+        "reviews/assets/814ee78bf02c349b315baf0c0230416a4dd6e5d205e9dd9db2d12d899721e7d7.webp",
         "reviews/assets/84db36c535b623a782ddd4f282713d15709671aab6ee0102cf31256f3d0524b0.webp",
         "reviews/assets/8bbd3616637ee1437bbb73a7a2e5b575ca8752e4eb6b0f92156a9a446d2e4872.webp",
         "reviews/assets/8bc68f8f294f722169d2cafa09d1613a30616ec458c3345fe6df15ef68e840cc.webp",
@@ -55,7 +55,7 @@
         "reviews/assets/fd8941e9a7e4f7635e4becf6d72986e70223a858eff276b7ee125c496e756d5f.webp",
         "reviews/assets/fe0dbe638ca79564b5b5e1028cfabe857044876284444506457e9b3c649bab3d.webp"
       ],
-      "revision": "822fb1ca8c1625f6856a95f3e3feafbdbf80ba43"
+      "revision": "efbe42687a2586afa7d29fa1399aea5c02afdaf9"
     }
   ]
 }
