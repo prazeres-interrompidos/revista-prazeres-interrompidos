@@ -104,6 +104,7 @@ async function openPublishedEdition(id,entries,resetPage=false){
     if(resetPage)history.replaceState(null,'','#'+new URLSearchParams({edicao:selected.id,pagina:'1'}));
     editions=catalog.map(entry=>entry.id===selected.id?content:entry);
     await window.RevistaFilmCatalog.load();
+    await window.RevistaGIFs?.preload(content.bookGifs||[]);
     loadEdition(selected.id);
     loadedRevision=selected.revision;
     return true;
@@ -204,7 +205,7 @@ function immersive(on){document.body.classList.toggle('immersive',on);$('#fullsc
 $('#fullscreen').onclick=async()=>{if(document.fullscreenElement){await document.exitFullscreen();immersive(false);return}if(document.body.classList.contains('immersive')){immersive(false);return}try{if(document.documentElement.requestFullscreen)await document.documentElement.requestFullscreen();immersive(true)}catch{immersive(true)}};
 document.addEventListener('fullscreenchange',()=>{if(!document.fullscreenElement)immersive(false)});document.addEventListener('keydown',e=>{if(e.key==='Escape')immersive(false)});
 document.addEventListener('keydown',e=>{if(!flip||e.target.matches('input,textarea')||panel.open||$('#reading').open)return;if(e.key==='ArrowRight')flip.flipNext();if(e.key==='ArrowLeft')flip.flipPrev()});
-if(new URLSearchParams(location.search).get('preview')==='embedded'&&window.parent!==window){window.addEventListener('message',e=>{if(e.origin!==location.origin||e.source!==window.parent||e.data?.type!=='pi-preview-edition')return;const draft=e.data.edition;if(!draft||!Array.isArray(draft.articles))return;draftPreview=true;editions=[draft];void window.RevistaFilmCatalog.load().then(()=>loadEdition(draft.id))});window.parent.postMessage({type:'pi-preview-ready'},location.origin);}else if(draftPreview)void window.RevistaFilmCatalog.load().then(()=>loadEdition(editions[0].id));else void openPublishedEdition(new URLSearchParams(location.hash.slice(1)).get('edicao'));
+if(new URLSearchParams(location.search).get('preview')==='embedded'&&window.parent!==window){window.addEventListener('message',e=>{if(e.origin!==location.origin||e.source!==window.parent||e.data?.type!=='pi-preview-edition')return;const draft=e.data.edition;if(!draft||!Array.isArray(draft.articles))return;draftPreview=true;editions=[draft];void window.RevistaFilmCatalog.load().then(()=>window.RevistaGIFs?.preload(draft.bookGifs||[])).then(()=>loadEdition(draft.id))});window.parent.postMessage({type:'pi-preview-ready'},location.origin);}else if(draftPreview)void window.RevistaFilmCatalog.load().then(()=>window.RevistaGIFs?.preload(editions[0].bookGifs||[])).then(()=>loadEdition(editions[0].id));else void openPublishedEdition(new URLSearchParams(location.hash.slice(1)).get('edicao'));
 
 
 // Partilha da página atual e versão PDF com a mesma paginação do leitor.

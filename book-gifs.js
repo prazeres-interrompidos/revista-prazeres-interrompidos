@@ -7,12 +7,29 @@ const pause='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 5h4v14H7zm6
 const sectionTitle='Book GIFs - Episódios do Nosso Arquivo';
 const reduced=matchMedia('(prefers-reduced-motion: reduce)');
 const manualPlayback=new WeakSet();
+const posters=new Map(),posterLoads=new Map();
 let expanded=null;
 function canRender(item){return !!String(item.title||'').trim()&&!!String(item.author||'').trim()}
+function loadPoster(source){
+ if(posters.has(source))return Promise.resolve();
+ if(posterLoads.has(source))return posterLoads.get(source);
+ const task=new Promise(resolve=>{
+  const image=new Image();
+  const finish=()=>{clearTimeout(timer);if(image.naturalWidth&&image.naturalHeight)posters.set(source,{width:image.naturalWidth,height:image.naturalHeight});resolve();};
+  const timer=setTimeout(finish,4000);image.onload=finish;image.onerror=finish;image.src=source;
+  if(image.complete)finish();
+ });
+ posterLoads.set(source,task);return task;
+}
+function preload(items){
+ const sources=new Set(items.map(item=>root.RevistaFilmCatalog.match(item,'gif').item?.poster).filter(Boolean));
+ return Promise.all([...sources].map(loadPoster));
+}
 function markup(item){
  const match=root.RevistaFilmCatalog.match(item,'gif'),gif=match.item,title=String(item.title||'Book GIF');
  if(!gif)return '<div class="gif-shell"><div class="gif-frame gif-unavailable" role="group" aria-label="Book GIF: '+esc(title)+'"><p>'+(match.status==='ambiguous'?'GIF por selecionar.':'GIF ainda não disponível.')+'</p></div></div>';
- return '<div class="gif-shell" data-gif-title="'+esc(title)+'"><div class="gif-frame" role="group" aria-label="Book GIF: '+esc(title)+'" data-gif-page="'+esc(gif.pageUrl)+'" data-gif-poster="'+esc(gif.poster)+'"><img class="gif-image" src="'+esc(gif.poster)+'" data-gif-source="'+esc(gif.url)+'" data-gif-poster="'+esc(gif.poster)+'" alt="'+esc(title)+' — '+esc(item.author)+'" loading="lazy"></div><div class="trailer-toolbar gif-toolbar" role="group" aria-label="Controlos do Book GIF"><button class="trailer-control" type="button" data-gif-expand aria-label="Ampliar GIF" title="Ampliar GIF" data-tooltip="Ampliar GIF"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="4" width="16" height="16" rx="1"/></svg></button><button class="trailer-control" type="button" data-gif-toggle aria-label="Animar GIF" title="Animar GIF" data-tooltip="Animar GIF" aria-pressed="false">'+play+'</button></div></div>';
+ const dimensions=posters.get(gif.poster),size=dimensions?' width="'+dimensions.width+'" height="'+dimensions.height+'"':'';
+ return '<div class="gif-shell" data-gif-title="'+esc(title)+'"><div class="gif-frame" role="group" aria-label="Book GIF: '+esc(title)+'" data-gif-page="'+esc(gif.pageUrl)+'" data-gif-poster="'+esc(gif.poster)+'"><img class="gif-image"'+size+' src="'+esc(gif.poster)+'" data-gif-source="'+esc(gif.url)+'" data-gif-poster="'+esc(gif.poster)+'" alt="'+esc(title)+' — '+esc(item.author)+'" loading="eager"></div><div class="trailer-toolbar gif-toolbar" role="group" aria-label="Controlos do Book GIF"><button class="trailer-control" type="button" data-gif-expand aria-label="Ampliar GIF" title="Ampliar GIF" data-tooltip="Ampliar GIF"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="4" width="16" height="16" rx="1"/></svg></button><button class="trailer-control" type="button" data-gif-toggle aria-label="Animar GIF" title="Animar GIF" data-tooltip="Animar GIF" aria-pressed="false">'+play+'</button></div></div>';
 }
 function animate(shell,on){
  const image=shell.querySelector('.gif-image');if(!image)return;
@@ -27,6 +44,7 @@ function reset(shell){
  animate(shell,false);
 }
 function keepVisible(page){
+ fitFrames(document);
  requestAnimationFrame(()=>fitFrames(document));
  document.querySelectorAll('#book .gif-shell').forEach(shell=>{
   const sheet=shell.closest('[data-sheet-index]');
@@ -57,12 +75,17 @@ function expand(shell){
  dialog.showModal();
 }
 const protectedShells=new WeakSet();
+const measuredPages=new Set(),pageResize=typeof ResizeObserver==='function'?new ResizeObserver(()=>fitFrames(document)):null;
 function protect(){
+ for(const inner of measuredPages)if(!inner.isConnected){pageResize?.unobserve(inner);measuredPages.delete(inner);}
  document.querySelectorAll('.gif-shell').forEach(shell=>{
   if(protectedShells.has(shell))return;
   protectedShells.add(shell);
   for(const event of ['pointerdown','pointerup','pointermove','mousedown','mouseup','mousemove','touchstart','touchmove','touchend','keydown','click'])shell.addEventListener(event,e=>e.stopPropagation());
   const frame=shell.querySelector('.gif-frame[data-gif-page]');
+  shell.querySelector('.gif-image')?.addEventListener('load',()=>fitFrames(document));
+  const inner=shell.closest('.gif-page .page-inner');
+  if(inner&&!measuredPages.has(inner)){measuredPages.add(inner);pageResize?.observe(inner);}
   frame?.addEventListener('pointerenter',event=>{
    if(event.pointerType==='mouse'&&!reduced.matches&&!expanded&&!document.hidden)animate(shell,true);
   });
@@ -97,6 +120,9 @@ function preparePDF(doc){
 }
 function fitFrames(container){
  container.querySelectorAll('.gif-page .page-inner').forEach(inner=>{
+  // PageFlip hides unopened sheets with display:none. Their zero dimensions
+  // must never replace the normal frame size with the 80px minimum.
+  if(!inner.clientHeight||!inner.clientWidth)return;
   const shell=inner.querySelector('.gif-shell');
   const frame=inner.querySelector('.gif-frame');
   const folio=inner.querySelector('.folio');
@@ -108,8 +134,9 @@ function fitFrames(container){
    .reduce((sum,key)=>sum+(parseFloat(frameStyle[key])||0),0);
   const space=inner.clientHeight-(parseFloat(style.paddingBottom)||0)-folio.offsetHeight
    -shell.offsetTop-(toolbar?.offsetHeight||0)-(audio?.offsetHeight||0)-decoration-20;
-  frame.style.setProperty('--gif-image-height',Math.max(80,Math.min(360,space))+'px');
+  const height=Math.max(80,Math.min(360,space))+'px';
+  if(frame.style.getPropertyValue('--gif-image-height')!==height)frame.style.setProperty('--gif-image-height',height);
  });
 }
-root.RevistaGIFs={markup,canRender,hasText:root.RevistaTrailers.hasText,sectionTitle,keepVisible,prepare,stop,preparePDF,fitFrames};
+root.RevistaGIFs={markup,preload,canRender,hasText:root.RevistaTrailers.hasText,sectionTitle,keepVisible,prepare,stop,preparePDF,fitFrames};
 })(window);

@@ -18,6 +18,7 @@ async function check(){
   window.EDITIONS=[record.edition];window.REVISTA_REVIEW=true;reader.hidden=false;
   if(!started){await script('revisao/app.js?v=cores-subtitulos-indice-20261113');started=true;}
   await window.RevistaFilmCatalog.load();
+  await window.RevistaGIFs?.preload(record.edition.bookGifs||[]);
   editions=[record.edition];draftPreview=true;loadEdition(record.editionId);
   lastUpdate=record.updatedAt;updated.textContent='Última atualização: '+new Date(record.updatedAt).toLocaleString('pt-PT');
   notice.textContent='Esta edição está em preparação. A ligação acompanha as versões guardadas para revisão.';
