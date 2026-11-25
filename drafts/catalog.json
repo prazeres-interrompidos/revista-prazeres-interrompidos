@@ -4,8 +4,8 @@
     {
       "editionId": "2026-11",
       "file": "drafts/323032362d3131.json",
-      "signature": "19157d238722c6d64a799be511818693c6638265d6b1f58d1b5b38c0d41295ce",
-      "updatedAt": "2026-11-22T06:27:07.543Z",
+      "signature": "7f4787c6233d6483cafe465d3b6cd0ff3a79a12556ce27e96183a9a69daa67c3",
+      "updatedAt": "2026-11-25T17:49:56.925Z",
       "assets": [
         "reviews/assets/06e4dbe1c3098daf132942c4447ece22728d38a5b97cb20596f46194f08a852d.webp",
         "reviews/assets/1b2239a2e5176a2408032a9baa76f71113c49f82679acf3d4947fc709b132079.png",
@@ -14,15 +14,20 @@
         "reviews/assets/442121956981eb477b8d2b75ac98f0deec269c2754a0286466363bbd18cebb8a.jpg",
         "reviews/assets/47e80a7a4b9e53c02e9fc1980ec7dde24f97c31e9cca9ae1506f76f799386c06.webp",
         "reviews/assets/497fa9446be243fada1ecce555212c862d02f662cc9084222d5fa312fa7cd5a3.webp",
+        "reviews/assets/4afebe3584a2fbadd12e88e61e596407ba62c76796300b5ef8960eb8d76751b9.webp",
         "reviews/assets/59e1bd0ccd3e137202e5072ba168a644260ce0f00173d2c9b2aefc75f2deb95d.webp",
         "reviews/assets/5e4198a224bb1411832d167ad7c1208b154de8e72a2c7a969900fba103bd1fad.webp",
         "reviews/assets/5f71e72d96085973faca90d9191efccdd31f03e7a28efe0f70b26130c83a4044.webp",
+        "reviews/assets/60af207158171e211c882f31217f76a742ea6eed43c4499fb320da58b22bc8ee.webp",
+        "reviews/assets/6e2ab85467a81e0b48c3826d782ff4a9874731bc93f135d9f429bd9581078a8a.webp",
         "reviews/assets/72252873bf36511a20703c9c692c7706804514fd1da6b78b59dc0aa71fcf72bf.webp",
         "reviews/assets/7c45796c7b3db3b60c66735c8b5af4f51f8a6a9a612c2ce9aa617240d32e3790.webp",
         "reviews/assets/7cb7fedb40c245464d08da4c80824f8768363386d972a346f8b1ae30ebe658ed.jpg",
+        "reviews/assets/7d60956d8424337c344a156350b53e63f71a6f0e01dca54005abcf0bc85d365e.webp",
         "reviews/assets/84db36c535b623a782ddd4f282713d15709671aab6ee0102cf31256f3d0524b0.webp",
         "reviews/assets/8bbd3616637ee1437bbb73a7a2e5b575ca8752e4eb6b0f92156a9a446d2e4872.webp",
         "reviews/assets/8bc68f8f294f722169d2cafa09d1613a30616ec458c3345fe6df15ef68e840cc.webp",
+        "reviews/assets/8f52edb3fb0dac367cf7048828261cb3117bb6e66252a9722ef122167a06b49a.webp",
         "reviews/assets/997846b4853c6651334424bb26ddc89d73226769556d2f326f171ef0ee2725c1.webp",
         "reviews/assets/998b4c4e4ccc2d50b0f6fcf0d9d22233b590493ab9316d9bf1f25fe44d9d41d2.webp",
         "reviews/assets/9ddb1b2cd5e60a18ef795a1ecfdebc7d865c481905c5c67be78a254c9893cc9d.webp",
@@ -45,10 +50,12 @@
         "reviews/assets/edb9f875d5e392edff13d95767878d1aff2bb7bf32f1c659c74a623a79194b15.jpg",
         "reviews/assets/f1fd0ef7ceacc8e183a1fe32fa0c66e191ebd0c478ee2497a9c2c8edbc9dcd4d.webp",
         "reviews/assets/f54508526ab8a0ea4b8257412ffa6f88f19feab26abec8fbd3cc1e78b077c0d7.webp",
+        "reviews/assets/faafb10a88c391c8ca42809f9786d4fcd6414b18884fc182e4f46e7e746afa65.jpg",
         "reviews/assets/fafd13fd599b0b797112e04cd7e9bbdab0c9fef7dd3a126586dad344e835bfac.webp",
+        "reviews/assets/fd8941e9a7e4f7635e4becf6d72986e70223a858eff276b7ee125c496e756d5f.webp",
         "reviews/assets/fe0dbe638ca79564b5b5e1028cfabe857044876284444506457e9b3c649bab3d.webp"
       ],
-      "revision": "b3f361df731975a1dc7bf38ea0a5d23e170e1db8"
+      "revision": "e5e68185eb7c729084e38ce8f7d7a206bd6aff48"
     }
   ]
 }
