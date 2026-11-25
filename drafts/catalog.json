@@ -4,11 +4,12 @@
     {
       "editionId": "2026-11",
       "file": "drafts/323032362d3131.json",
-      "signature": "7f4787c6233d6483cafe465d3b6cd0ff3a79a12556ce27e96183a9a69daa67c3",
-      "updatedAt": "2026-11-25T17:49:56.925Z",
+      "signature": "f7a98754dd79194822212b61623a5d8e9bbd9c9e9cc7ac1a903cd0bca891d23c",
+      "updatedAt": "2026-11-25T18:39:34.438Z",
       "assets": [
         "reviews/assets/06e4dbe1c3098daf132942c4447ece22728d38a5b97cb20596f46194f08a852d.webp",
         "reviews/assets/1b2239a2e5176a2408032a9baa76f71113c49f82679acf3d4947fc709b132079.png",
+        "reviews/assets/1e1fda9d2aed9d8d08a9c91ccbcb9303e7022ee55b35f16080fcc695a57d1b08.webp",
         "reviews/assets/1e8e389fd2efc795fe830dec31994e399ff8cf0a47c6626f05a2891ad3dcc208.webp",
         "reviews/assets/338ea67e39446a6591ea5e65e5663146a29bcb54967b75c1a4993b9446672d98.jpg",
         "reviews/assets/442121956981eb477b8d2b75ac98f0deec269c2754a0286466363bbd18cebb8a.jpg",
@@ -51,11 +52,10 @@
         "reviews/assets/f1fd0ef7ceacc8e183a1fe32fa0c66e191ebd0c478ee2497a9c2c8edbc9dcd4d.webp",
         "reviews/assets/f54508526ab8a0ea4b8257412ffa6f88f19feab26abec8fbd3cc1e78b077c0d7.webp",
         "reviews/assets/faafb10a88c391c8ca42809f9786d4fcd6414b18884fc182e4f46e7e746afa65.jpg",
-        "reviews/assets/fafd13fd599b0b797112e04cd7e9bbdab0c9fef7dd3a126586dad344e835bfac.webp",
         "reviews/assets/fd8941e9a7e4f7635e4becf6d72986e70223a858eff276b7ee125c496e756d5f.webp",
         "reviews/assets/fe0dbe638ca79564b5b5e1028cfabe857044876284444506457e9b3c649bab3d.webp"
       ],
-      "revision": "e5e68185eb7c729084e38ce8f7d7a206bd6aff48"
+      "revision": "822fb1ca8c1625f6856a95f3e3feafbdbf80ba43"
     }
   ]
 }
