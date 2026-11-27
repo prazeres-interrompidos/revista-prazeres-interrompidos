@@ -24,12 +24,31 @@ block.innerHTML=prose(chunks[chunks.length-1]);
 if(block.offsetHeight+closingHeight>available)chunks.push('');
 host.remove();return chunks}
 
-function fitEditorialContent(entry,inner){
-if(!entry||!inner)return;const block=inner.querySelector('.editorial-prose'),author=inner.querySelector('.editorial-author'),folio=inner.querySelector('.folio');
-const authorSpace=author?author.offsetHeight+parseFloat(getComputedStyle(author).marginTop)+parseFloat(getComputedStyle(author).marginBottom):0;
-const available=640-parseFloat(getComputedStyle(inner).paddingBottom)-folio.offsetHeight-authorSpace-block.offsetTop;
-let size=16;while(block.offsetHeight>available&&size>1){size-=.25;block.style.fontSize=size+'px'}
-entry.content=entry.content.replace('class="editorial-prose article-prose"','class="editorial-prose article-prose" style="font-size:'+size+'px"');
+function addEditorialPages(edition){
+  contentsEntries.push({kind:'standalone',title:'Editorial',subtitle:'',start:pages.length});
+  const name=String(edition.editorialAuthor||'').trim();
+  const signature=name?'<p class="editorial-author">'+esc(name)+'</p>':'';
+  const heading=first=>'<div class="eyebrow">'+(first?'PRAZERES INTERROMPIDOS':'EDITORIAL · CONTINUAÇÃO')+'</div>'+(first?'<h2>Editorial</h2>':'');
+  const host=document.createElement('div');
+  host.className='page editorial-page';
+  host.style.cssText='position:absolute;left:-10000px;top:0;visibility:hidden;width:460px';
+  document.body.append(host);
+  try{
+    let block,limit;
+    function measure(first){
+      host.innerHTML='<div class="page-inner">'+heading(first)+'<div class="editorial-prose article-prose"></div>'+signature+'<div class="folio"><span>PRAZERES INTERROMPIDOS</span><span>00</span></div></div>';
+      const inner=host.firstElementChild,author=inner.querySelector('.editorial-author');
+      block=inner.querySelector('.editorial-prose');
+      const authorSpace=author?author.offsetHeight+parseFloat(getComputedStyle(author).marginTop)+parseFloat(getComputedStyle(author).marginBottom):0;
+      limit=inner.clientHeight-parseFloat(getComputedStyle(inner).paddingBottom)-inner.lastElementChild.offsetHeight-block.offsetTop-authorSpace;
+    }
+    measure(true);
+    const chunks=RevistaPoetry.paginate(edition.editorialText,text=>{
+      block.innerHTML=prose(text);
+      return block.getBoundingClientRect().height<=limit;
+    },()=>measure(false));
+    chunks.forEach((text,i)=>page(heading(i===0)+'<div class="editorial-prose article-prose">'+prose(text)+'</div>'+(i===chunks.length-1?signature:''),'editorial-page'));
+  }finally{host.remove()}
 }
 function balanceContentsEnd(sheets,canFit){
  if(sheets.length<2||sheets[sheets.length-1].length!==1)return sheets;
@@ -121,8 +140,7 @@ const coverClass=coverFit==='fill'?'full-bleed-cover':'';
 if(edition.cover)page(`<img class="${coverClass}" src="${esc(safeImage(edition.cover))}" alt="Capa da revista — N.º ${esc(edition.number)} · ${esc(edition.month)}" style="position:absolute;inset:0;width:100%;height:100%;object-fit:${coverFit};object-position:center;background:var(--paper)">`,'uploaded-cover');else page(`<div class="eyebrow"><span>REVISTA DO PODCAST</span><span>N.º ${esc(edition.number)} · ${esc(edition.month)}</span></div><h1 class="masthead">Prazeres<br>Interrompidos</h1><div class="cover-sub">Leituras que ficam.</div><div class="cover-art">${edition.cover?`<img class="cover-image" src="${esc(safeImage(edition.cover))}" alt="Capa da edição">`:'<span>pi</span>'}</div><h2>${esc(edition.headline)}</h2><p>${edition.demo?'Um ensaio de leitura.<br>Textos e capas demonstrativos.':'Uma edição do Projeto Internacional de Promoção<br>da Leitura, dos Livros e dos Escritores.'}</p>`,'cover');
 const opening=Object.fromEntries(Object.entries(openingDefaults(edition)).map(([k,v])=>[k,k==='openingLabel'&&['ABERTURA · EDITORIAL','ABERTURA · NÚMERO EXPERIMENTAL'].includes(edition[k])?'ABERTURA':edition[k]??v]));const openingPart=(key,tag,cls='')=>opening[key]?`<${tag}${cls?` class="${cls}"`:''}>${esc(opening[key]).replace(/\r\n|\r|\n/g,'<br>')}</${tag}>`:'';
 page(`${openingPart('openingLabel','div','eyebrow')}${openingPart('openingTitle','h2')}${openingPart('openingSubtitle','p','intro')}${RevistaPoetry.hasFormatting(edition.editorial)?'<div class="text-block article-prose">'+RevistaPoetry.render(edition.editorial,'left')+'</div>':'<div class="text-block">'+esc(edition.editorial)+'</div>'}${edition.director?`<p class="note"><strong>Diretor-Geral do Projeto:</strong> ${esc(edition.director)}</p>`:''}${openingPart('openingNote','p','note')}`);
-let editorialStart=-1;
-if(edition.hasEditorial===true){editorialStart=pages.length;contentsEntries.push({kind:'standalone',title:'Editorial',subtitle:'',start:editorialStart});page('<div class="eyebrow">PRAZERES INTERROMPIDOS</div><h2>Editorial</h2><div class="editorial-prose article-prose">'+prose(edition.editorialText)+'</div>'+(String(edition.editorialAuthor||'').trim()?'<p class="editorial-author"><strong>Autor do editorial:</strong> '+esc(edition.editorialAuthor)+'</p>':''),'editorial-page')}
+if(edition.hasEditorial===true)addEditorialPages(edition);
 const requestedTrailers=Array.isArray(edition.bookTrailers)?edition.bookTrailers:[];const publishedTrailers=requestedTrailers.filter(t=>window.RevistaTrailers?.canRender(t)).map(t=>({...t,section:t.section||'Episódios do Nosso Arquivo'}));if(new URLSearchParams(location.search).get('amostra')==='trailers'){if(!publishedTrailers.length)publishedTrailers.push(window.RevistaTrailers.sample());else publishedTrailers.forEach((t,i)=>{if(t.title==='Na Tua Mão'&&t.author==='Hélder Teixeira Aguiar'&&!String(t.text||'').trim()){const example=window.RevistaTrailers.sample();publishedTrailers[i]={...t,voice:t.voice||example.voice,textAuthor:t.textAuthor||example.textAuthor,section:t.section||example.section,hasText:true,sampleTextPlaceholder:true};}});}const publishedGifs=(Array.isArray(edition.bookGifs)?edition.bookGifs:[]).filter(g=>window.RevistaGIFs?.canRender(g)).map(g=>({...g,section:g.section||'Episódios do Nosso Arquivo'}));themeArticles=[...readerArticles,...publishedTrailers,...publishedGifs];audioArticles=themeArticles;window.RevistaAudio?.setArticles(audioArticles);let trailerStart=-1;
 const tocStart=pages.length;
 const plannedNews=(edition.news||[]).filter(n=>n.image||(n.hasText!==false&&n.text?.trim()));
@@ -175,7 +193,6 @@ const indexSheets=paginateContents(indexEntries);
 for(let toc=0;toc<tocCount;toc++)pages[tocStart+toc].content='<div class="eyebrow">NESTA EDIÇÃO</div>'+(toc===0?'<h2>Índice.</h2>':'')+indexSheets[toc].map(contentsEntry).join('');
 window.RevistaTheme?.start(pages,themeArticles);
 if(flip){flip.destroy();$('#bookWrap').innerHTML='<div id="book"></div>'}$('#book').innerHTML=pages.map((p,i)=>`<div class="page ${p.cls} ${p.themeClass||''}" data-sheet-index="${i}" ${i===0||i===pages.length-1?'data-density="hard"':''}><div class="page-inner">${p.content}<div class="folio" ${(p.cls==='uploaded-cover'||p.cls==='uploaded-back-cover'||p.cls==='poster-page')?'hidden style="display:none"':''}><span>${edition.demo?'EDIÇÃO EXPERIMENTAL':'PRAZERES INTERROMPIDOS'}</span><span>${String(i+1).padStart(2,'0')}</span></div></div></div>`).join('');
-if(editorialStart>=0)fitEditorialContent(pages[editorialStart],$('#book .editorial-page .page-inner'));
 const mobile=matchMedia('(pointer: coarse)').matches||innerWidth<=700;document.body.classList.toggle('touch-reader',mobile);$('#hint').textContent=mobile?'Deslize para os lados ou use as setas. Use A+ para ampliar a leitura.':'Folheie pelos cantos ou use as setas.';let initial=0;const params=new URLSearchParams(location.hash.slice(1));try{initial=params.get('edicao')===edition.id?Number(params.get('pagina')||1)-1:Number(localStorage.getItem('pi-page-'+edition.id)||0)}catch{}if(new URLSearchParams(location.search).get('amostra')==='trailers'&&!params.has('pagina')&&trailerStart>=0)initial=trailerStart;initial=Math.max(0,Math.min(pages.length-1,initial||0));
 flip=mobile?createTouchReader($('#book'),initial):new St.PageFlip($('#book'),{width:460,height:640,size:'stretch',minWidth:260,maxWidth:460,minHeight:362,maxHeight:640,showCover:true,usePortrait:true,autoSize:true,mobileScrollSupport:true,flippingTime:matchMedia('(prefers-reduced-motion: reduce)').matches?0:700,maxShadowOpacity:.18,startPage:initial,clickEventForward:true,useMouseEvents:true,swipeDistance:35});
 flip.on('flip',e=>update(e.data));flip.loadFromHTML($('#book').querySelectorAll('.page'));$('#total').textContent='/ '+pages.length;$('#pageNumber').max=pages.length;update(initial);if(pageObserver)pageObserver.disconnect();pageObserver=new ResizeObserver(scalePages);pageObserver.observe($('#book'));requestAnimationFrame(scalePages);
