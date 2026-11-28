@@ -4,8 +4,8 @@
     {
       "editionId": "2026-11",
       "file": "drafts/323032362d3131.json",
-      "signature": "95110ca7e4d39d179508092665b84d271045d5621f5d1b93c8fcdb72920719fb",
-      "updatedAt": "2026-11-27T13:24:29.930Z",
+      "signature": "09ee0455e92d26793586d4de55e57ed2f29aa3505374fae3dcdb1be9db202804",
+      "updatedAt": "2026-11-28T10:14:26.924Z",
       "assets": [
         "reviews/assets/06e4dbe1c3098daf132942c4447ece22728d38a5b97cb20596f46194f08a852d.webp",
         "reviews/assets/1b2239a2e5176a2408032a9baa76f71113c49f82679acf3d4947fc709b132079.png",
@@ -55,7 +55,7 @@
         "reviews/assets/fd8941e9a7e4f7635e4becf6d72986e70223a858eff276b7ee125c496e756d5f.webp",
         "reviews/assets/fe0dbe638ca79564b5b5e1028cfabe857044876284444506457e9b3c649bab3d.webp"
       ],
-      "revision": "58d1863c4fd1c6cd0ff624bfa33b2435ae8aa644"
+      "revision": "c6453dc4b384a8cbeac7ae2cc1eecd1267b0c3aa"
     }
   ]
 }
